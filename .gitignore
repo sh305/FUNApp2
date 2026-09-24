@@ -1,0 +1,39 @@
+# Node / React Native / Expo
+node_modules/
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native builds
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+frontend/YoYoApp/android/
+frontend/YoYoApp/ios/
+
+# Metro / Debug
+.metro-health-check*
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+*.log
+
+# .NET / C# build artifacts
+[Bb]in/
+[Oo]bj/
+.vs/
+*.user
+*.userprefs
+*.suo
+*.sln.docstates
+
+# OS & Temp
+.DS_Store
+Thumbs.db
+ehthumbs.db
+[Tt]emp/
