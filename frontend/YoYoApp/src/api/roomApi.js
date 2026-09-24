@@ -5,14 +5,14 @@ export const roomApi = {
     const url = category && category !== 'All' 
       ? `${API_BASE_URL}/api/rooms?category=${encodeURIComponent(category)}` 
       : `${API_BASE_URL}/api/rooms`;
-    const res = await fetchWithTimeout(url, {}, 8000);
+    const res = await fetchWithTimeout(url, {}, 30000);
     const data = await parseApiResponse(res);
     if (!res.ok) throw new Error((data && (data.message || data.error)) || 'Rooms load karne me error');
     return data;
   },
 
   async getRoomById(id) {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/api/rooms/${id}`, {}, 8000);
+    const res = await fetchWithTimeout(`${API_BASE_URL}/api/rooms/${id}`, {}, 30000);
     const data = await parseApiResponse(res);
     if (!res.ok) throw new Error((data && (data.message || data.error)) || 'Room details load karne me error');
     return data;
@@ -26,7 +26,7 @@ export const roomApi = {
         'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({ title, description, coverUrl, category, isLocked, password })
-    }, 10000);
+    }, 30000);
     const data = await parseApiResponse(res);
     if (!res.ok) throw new Error((data && (data.message || data.error)) || 'Room create karne me error');
     return data;
