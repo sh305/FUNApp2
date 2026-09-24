@@ -20,6 +20,8 @@ import { roomApi } from '../api/roomApi';
 import { giftApi } from '../api/giftApi';
 import { moderationApi } from '../api/moderationApi';
 import { roomHubService } from '../signalr/roomHubService';
+import { agoraApi } from '../api/agoraApi';
+import { agoraVoiceService } from '../services/agoraVoiceService';
 
 import { AvatarWithFrame } from '../components/AvatarWithFrame';
 import { MicSeatGrid } from '../components/MicSeatGrid';
@@ -35,11 +37,14 @@ import { EmojiPickerModal } from '../components/EmojiPickerModal';
 
 export const RoomVoiceScreen = ({ roomId, roomPassword, onLeave }) => {
   const { user, token, updateCoins, refreshProfile } = useAuth();
+  const { width: windowWidth } = useWindowDimensions();
   const [room, setRoom] = useState(null);
   const [seats, setSeats] = useState([]);
   const [seatCount, setSeatCount] = useState(8);
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
+  const [activeSpeakers, setActiveSpeakers] = useState([]);
 
   // Room Box state
   const [boxPoints, setBoxPoints] = useState(0);
@@ -69,8 +74,21 @@ export const RoomVoiceScreen = ({ roomId, roomPassword, onLeave }) => {
     return () => {
       roomHubService.leaveRoom(roomId).catch(() => {});
       roomHubService.clearListeners();
+      agoraVoiceService.leaveChannel().catch(() => {});
     };
   }, [roomId]);
+
+  useEffect(() => {
+    const unsub = agoraVoiceService.on('onAudioVolumeIndication', ({ speakers }) => {
+      if (Array.isArray(speakers)) {
+        const talkingUids = speakers
+          .filter(s => (s.volume || 0) > 5)
+          .map(s => (s.uid === 0 ? user?.id : s.uid));
+        setActiveSpeakers(talkingUids);
+      }
+    });
+    return () => unsub();
+  }, [user?.id]);
 
   const initRoom = async () => {
     try {
@@ -88,6 +106,22 @@ export const RoomVoiceScreen = ({ roomId, roomPassword, onLeave }) => {
       // Connect SignalR and join
       await roomHubService.connect(token);
       await roomHubService.joinRoom(roomId, roomPassword);
+
+      // Initialize & join Agora Voice Channel (as Audience listener initially)
+      try {
+        const agoraData = await agoraApi.getToken(token, roomId, 2);
+        if (agoraData?.appId) {
+          await agoraVoiceService.joinChannel({
+            appId: agoraData.appId,
+            channelName: agoraData.channelName || `room_${roomId}`,
+            token: agoraData.token,
+            uid: agoraData.uid || user?.id,
+            isBroadcaster: false
+          });
+        }
+      } catch (agoraErr) {
+        console.log('[RoomVoiceScreen] Agora voice init info:', agoraErr.message);
+      }
 
       // Welcome notice
       setMessages([
@@ -112,6 +146,11 @@ export const RoomVoiceScreen = ({ roomId, roomPassword, onLeave }) => {
 
     // 1. Seat Occupied
     roomHubService.on('SeatOccupied', (data) => {
+      if (data.occupant?.id === user?.id) {
+        agoraVoiceService.setRole(true);
+        setIsMuted(false);
+      }
+
       setSeats(prev => {
         const next = [...prev];
         const idx = next.findIndex(s => s.seatIndex === data.seatIndex);
@@ -144,6 +183,11 @@ export const RoomVoiceScreen = ({ roomId, roomPassword, onLeave }) => {
     // 2. Seat Vacated
     roomHubService.on('SeatVacated', (data) => {
       setSeats(prev => {
+        const vacatedSeat = prev.find(s => s.seatIndex === data.seatIndex);
+        if (vacatedSeat && vacatedSeat.occupantUserId === user?.id) {
+          agoraVoiceService.setRole(false);
+          setIsMuted(false);
+        }
         return prev.map(s => {
           if (s.seatIndex === data.seatIndex) {
             return { ...s, occupantUserId: null, occupant: null };
@@ -387,7 +431,7 @@ export const RoomVoiceScreen = ({ roomId, roomPassword, onLeave }) => {
               <Text style={styles.roomLevelDiamondText}>{room.roomLevel || 1}</Text>
             </View>
             <View style={styles.roomNameCol}>
-              <Text style={styles.roomTitleText} numberOfLines={1}>
+              <Text style={[styles.roomTitleText, { fontSize: Math.max(10, Math.min(12, windowWidth / 30)) }]} numberOfLines={1}>
                 {room.title || 'YoYo Lounge'}
               </Text>
               <Text style={styles.roomIdText}>
@@ -492,6 +536,7 @@ export const RoomVoiceScreen = ({ roomId, roomPassword, onLeave }) => {
             seats={seats}
             seatCount={seatCount}
             currentUserId={user?.id}
+            activeSpeakers={activeSpeakers}
             onTakeSeat={handleTakeSeat}
             onLeaveSeat={handleLeaveSeat}
             onSelectOccupant={(occupant) => {
@@ -564,11 +609,14 @@ export const RoomVoiceScreen = ({ roomId, roomPassword, onLeave }) => {
 
           {/* 3. Mic Toggle Button 🎙️ */}
           <TouchableOpacity
-            style={[styles.bottomCircleBtn, isUserOnMic && styles.bottomCircleBtnActive]}
-            onPress={() => {
+            style={[
+              styles.bottomCircleBtn,
+              isUserOnMic && (isMuted ? styles.bottomCircleBtnMuted : styles.bottomCircleBtnActive)
+            ]}
+            onPress={async () => {
               if (isUserOnMic) {
-                const mySeat = seats.find(s => s.occupantUserId === user?.id);
-                if (mySeat) handleLeaveSeat(mySeat.seatIndex);
+                const muted = await agoraVoiceService.toggleMute();
+                setIsMuted(muted);
               } else {
                 const emptySeat = seats.find(s => !s.occupantUserId);
                 if (emptySeat) handleTakeSeat(emptySeat.seatIndex);
@@ -576,7 +624,9 @@ export const RoomVoiceScreen = ({ roomId, roomPassword, onLeave }) => {
               }
             }}
           >
-            <Text style={styles.bottomBtnIcon}>🎙️</Text>
+            <Text style={styles.bottomBtnIcon}>
+              {isUserOnMic ? (isMuted ? '🔇' : '🎙️') : '🎙️'}
+            </Text>
           </TouchableOpacity>
 
           {/* 4. Chat 💬 */}
@@ -796,7 +846,10 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderWidth: 1,
     borderColor: 'rgba(168, 85, 247, 0.25)',
-    gap: 6
+    gap: 6,
+    flexShrink: 1,
+    maxWidth: '62%',
+    minWidth: 0
   },
   roomLevelDiamond: {
     width: 22,
@@ -814,7 +867,9 @@ const styles = StyleSheet.create({
     fontWeight: '900'
   },
   roomNameCol: {
-    maxWidth: 105
+    flex: 1,
+    maxWidth: '100%',
+    minWidth: 0
   },
   roomTitleText: {
     color: '#ffffff',
@@ -898,7 +953,7 @@ const styles = StyleSheet.create({
     opacity: 0.18
   },
   yoyoWatermark: {
-    fontSize: 110,
+    fontSize: Math.min(110, 320),
     fontWeight: '900',
     color: '#a855f7',
     transform: [{ rotate: '-25deg' }],
@@ -1184,7 +1239,7 @@ const styles = StyleSheet.create({
   bottomBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'space-evenly',
     backgroundColor: '#0a0520',
     paddingHorizontal: 6,
     paddingTop: 6,
@@ -1194,13 +1249,16 @@ const styles = StyleSheet.create({
     zIndex: 30
   },
   commentPillBtn: {
+    flex: 1,
     backgroundColor: 'rgba(40, 30, 75, 0.85)',
     borderRadius: 16,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderWidth: 1,
     borderColor: 'rgba(168, 85, 247, 0.25)',
-    minWidth: 76
+    minWidth: 0,
+    maxWidth: 140,
+    marginRight: 4
   },
   commentPillText: {
     color: 'rgba(255, 255, 255, 0.65)',
@@ -1221,6 +1279,10 @@ const styles = StyleSheet.create({
   bottomCircleBtnActive: {
     backgroundColor: 'rgba(34, 197, 94, 0.3)',
     borderColor: '#22c55e'
+  },
+  bottomCircleBtnMuted: {
+    backgroundColor: 'rgba(239, 68, 68, 0.35)',
+    borderColor: '#ef4444'
   },
   bottomBtnIcon: {
     fontSize: 15

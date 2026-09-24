@@ -120,7 +120,8 @@ const styles = StyleSheet.create({
     fontSize: 10,
     lineHeight: 14,
     color: '#38bdf8',
-    fontWeight: '600'
+    fontWeight: '600',
+    flexShrink: 1
   },
   messagesList: {
     paddingVertical: 2
@@ -151,12 +152,14 @@ const styles = StyleSheet.create({
     color: COLORS.secondary,
     fontSize: 12,
     fontWeight: 'bold',
-    marginRight: 6
+    marginRight: 6,
+    flexShrink: 0
   },
   messageContent: {
     color: COLORS.text,
     fontSize: 12,
-    flex: 1
+    flex: 1,
+    flexShrink: 1
   },
   giftAlertBubble: {
     backgroundColor: 'rgba(255, 215, 0, 0.15)',

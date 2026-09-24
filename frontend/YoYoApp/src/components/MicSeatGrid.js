@@ -6,6 +6,7 @@ export const MicSeatGrid = ({
   seats = [],
   seatCount = 8,
   currentUserId,
+  activeSpeakers = [],
   onTakeSeat,
   onLeaveSeat,
   onSelectOccupant
@@ -61,6 +62,11 @@ export const MicSeatGrid = ({
                         userLevel={seat.occupant.userLevel || 1}
                         size={avatarSize}
                       />
+                      {activeSpeakers.includes(seat.occupantUserId) && (
+                        <View style={styles.speakingBadge}>
+                          <Text style={styles.speakingBadgeText}>🔊</Text>
+                        </View>
+                      )}
                       <Text
                         style={[styles.occupantName, { maxWidth: circleSize + 22 }]}
                         numberOfLines={1}
@@ -167,5 +173,19 @@ const styles = StyleSheet.create({
     fontSize: 8,
     fontWeight: 'bold',
     marginTop: 1
+  },
+  speakingBadge: {
+    position: 'absolute',
+    top: -2,
+    right: 4,
+    backgroundColor: '#22c55e',
+    borderRadius: 8,
+    paddingHorizontal: 3,
+    paddingVertical: 1,
+    borderWidth: 1,
+    borderColor: '#ffffff'
+  },
+  speakingBadgeText: {
+    fontSize: 8
   }
 });

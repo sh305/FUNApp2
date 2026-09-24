@@ -25,6 +25,7 @@ builder.Services.AddSingleton<ICacheService, CacheService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<ISeatManager, SeatManager>();
 builder.Services.AddScoped<IGiftService, GiftService>();
+builder.Services.AddSingleton<IAgoraTokenService, AgoraTokenService>();
 
 // 4. SignalR Real-time Services
 builder.Services.AddSignalR(options =>
