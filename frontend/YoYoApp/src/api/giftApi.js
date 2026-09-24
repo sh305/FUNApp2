@@ -1,12 +1,13 @@
-import { API_BASE_URL } from './config';
+import { API_BASE_URL, parseApiResponse } from './config';
 
 export const giftApi = {
   async getGifts(token) {
     const res = await fetch(`${API_BASE_URL}/api/gifts`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    if (!res.ok) throw new Error('Gifts load error');
-    return await res.json();
+    const data = await parseApiResponse(res);
+    if (!res.ok) throw new Error((data && (data.message || data.error)) || 'Gifts load error');
+    return data;
   },
 
   async sendGift(token, { roomId, receiverUserId, giftId, quantity = 1 }) {
@@ -18,8 +19,8 @@ export const giftApi = {
       },
       body: JSON.stringify({ roomId, receiverUserId, giftId, quantity })
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Gift send error');
+    const data = await parseApiResponse(res);
+    if (!res.ok) throw new Error((data && (data.message || data.error)) || 'Gift send error');
     return data;
   }
 };
@@ -34,8 +35,8 @@ export const moderationApi = {
       },
       body: JSON.stringify({ reportedUserId, reason, durationType })
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Report submission error');
+    const data = await parseApiResponse(res);
+    if (!res.ok) throw new Error((data && (data.message || data.error)) || 'Report submission error');
     return data;
   }
 };

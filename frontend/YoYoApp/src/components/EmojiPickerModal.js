@@ -9,9 +9,9 @@ import {
   useWindowDimensions
 } from 'react-native';
 
-const QUICK_EMOJIS = ['❤️', '🔥', '😂', '👏', '🎉', '🌹', '🥳', '👑', '💯', '🤩', '😘', '🙏'];
+export const QUICK_EMOJIS = ['❤️', '🔥', '😂', '👏', '🎉', '🌹', '🥳', '👑', '💯', '🤩', '😘', '🙏'];
 
-const EMOJI_CATEGORIES = [
+export const EMOJI_CATEGORIES = [
   {
     id: 'smileys',
     name: 'Smileys',

@@ -230,4 +230,10 @@ namespace YoYoVoiceChatApi.Models.DTOs
         public int RoomId { get; set; }
         public string Content { get; set; } = string.Empty;
     }
+
+    public class UploadRoomPhotoRequest
+    {
+        public string? Base64Data { get; set; }
+        public string? Caption { get; set; }
+    }
 }

@@ -1,23 +1,24 @@
-import { API_BASE_URL } from './config';
+import { API_BASE_URL, parseApiResponse } from './config';
 
 export const userApi = {
   async getMe(token) {
     const res = await fetch(`${API_BASE_URL}/api/users/me`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    if (!res.ok) throw new Error('Failed to get current user');
-    return await res.json();
+    const data = await parseApiResponse(res);
+    if (!res.ok) throw new Error((data && (data.message || data.error)) || 'Failed to get current user');
+    return data;
   },
 
   async getUserProfile(token, targetUserId) {
     const res = await fetch(`${API_BASE_URL}/api/users/${targetUserId}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    const data = await res.json();
+    const data = await parseApiResponse(res);
     if (res.status === 403) {
-      return { isBlocked: true, message: data.message };
+      return { isBlocked: true, message: (data && (data.message || data.error)) || 'Forbidden' };
     }
-    if (!res.ok) throw new Error(data.message || 'Failed to get user profile');
+    if (!res.ok) throw new Error((data && (data.message || data.error)) || 'Failed to get user profile');
     return { isBlocked: false, ...data };
   },
 
@@ -26,8 +27,8 @@ export const userApi = {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Block failed');
+    const data = await parseApiResponse(res);
+    if (!res.ok) throw new Error((data && (data.message || data.error)) || 'Block failed');
     return data;
   },
 
@@ -36,8 +37,8 @@ export const userApi = {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Unblock failed');
+    const data = await parseApiResponse(res);
+    if (!res.ok) throw new Error((data && (data.message || data.error)) || 'Unblock failed');
     return data;
   },
 
@@ -45,16 +46,18 @@ export const userApi = {
     const res = await fetch(`${API_BASE_URL}/api/users/blocked-list`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    if (!res.ok) throw new Error('Blocked list load error');
-    return await res.json();
+    const data = await parseApiResponse(res);
+    if (!res.ok) throw new Error((data && (data.message || data.error)) || 'Blocked list load error');
+    return data;
   },
 
   async getFrames(token) {
     const res = await fetch(`${API_BASE_URL}/api/users/frames`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    if (!res.ok) throw new Error('Frames load error');
-    return await res.json();
+    const data = await parseApiResponse(res);
+    if (!res.ok) throw new Error((data && (data.message || data.error)) || 'Frames load error');
+    return data;
   },
 
   async selectFrame(token, frameId) {
@@ -66,8 +69,8 @@ export const userApi = {
       },
       body: JSON.stringify({ frameId })
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Frame selection failed');
+    const data = await parseApiResponse(res);
+    if (!res.ok) throw new Error((data && (data.message || data.error)) || 'Frame selection failed');
     return data;
   }
 };

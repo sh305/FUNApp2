@@ -1,4 +1,4 @@
-import { API_BASE_URL } from './config';
+import { API_BASE_URL, parseApiResponse } from './config';
 
 export const roomApi = {
   async getRooms(category = null) {
@@ -6,14 +6,16 @@ export const roomApi = {
       ? `${API_BASE_URL}/api/rooms?category=${encodeURIComponent(category)}` 
       : `${API_BASE_URL}/api/rooms`;
     const res = await fetch(url);
-    if (!res.ok) throw new Error('Rooms load karne me error');
-    return await res.json();
+    const data = await parseApiResponse(res);
+    if (!res.ok) throw new Error((data && (data.message || data.error)) || 'Rooms load karne me error');
+    return data;
   },
 
   async getRoomById(id) {
     const res = await fetch(`${API_BASE_URL}/api/rooms/${id}`);
-    if (!res.ok) throw new Error('Room details load karne me error');
-    return await res.json();
+    const data = await parseApiResponse(res);
+    if (!res.ok) throw new Error((data && (data.message || data.error)) || 'Room details load karne me error');
+    return data;
   },
 
   async createRoom(token, { title, description, coverUrl, category, isLocked, password }) {
@@ -25,8 +27,8 @@ export const roomApi = {
       },
       body: JSON.stringify({ title, description, coverUrl, category, isLocked, password })
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Room create karne me error');
+    const data = await parseApiResponse(res);
+    if (!res.ok) throw new Error((data && (data.message || data.error)) || 'Room create karne me error');
     return data;
   },
 
@@ -39,8 +41,8 @@ export const roomApi = {
       },
       body: JSON.stringify({ password })
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Room lock karne me error');
+    const data = await parseApiResponse(res);
+    if (!res.ok) throw new Error((data && (data.message || data.error)) || 'Room lock karne me error');
     return data;
   },
 
@@ -51,8 +53,8 @@ export const roomApi = {
         'Authorization': `Bearer ${token}`
       }
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Room unlock karne me error');
+    const data = await parseApiResponse(res);
+    if (!res.ok) throw new Error((data && (data.message || data.error)) || 'Room unlock karne me error');
     return data;
   },
 
@@ -62,8 +64,8 @@ export const roomApi = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ password })
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(typeof data === 'string' ? data : (data.message || 'Galat password'));
+    const data = await parseApiResponse(res);
+    if (!res.ok) throw new Error(typeof data === 'string' ? data : ((data && (data.message || data.error)) || 'Galat password'));
     return data;
   },
 
@@ -71,8 +73,9 @@ export const roomApi = {
     const res = await fetch(`${API_BASE_URL}/api/rooms/${roomId}/kicks`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    if (!res.ok) throw new Error('Kicks list load nahi hui');
-    return await res.json();
+    const data = await parseApiResponse(res);
+    if (!res.ok) throw new Error((data && (data.message || data.error)) || 'Kicks list load nahi hui');
+    return data;
   },
 
   async pardonKick(token, roomId, kickId) {
@@ -80,8 +83,8 @@ export const roomApi = {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Unkick error');
+    const data = await parseApiResponse(res);
+    if (!res.ok) throw new Error((data && (data.message || data.error)) || 'Unkick error');
     return data;
   },
 
@@ -93,8 +96,22 @@ export const roomApi = {
         'Authorization': `Bearer ${token}`
       }
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Box claim karne me error');
+    const data = await parseApiResponse(res);
+    if (!res.ok) throw new Error((data && (data.message || data.error)) || 'Box claim karne me error');
+    return data;
+  },
+
+  async uploadRoomPhoto(token, roomId, base64Data, caption = '') {
+    const res = await fetch(`${API_BASE_URL}/api/rooms/${roomId}/upload-photo`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ base64Data, caption })
+    });
+    const data = await parseApiResponse(res);
+    if (!res.ok) throw new Error((data && (data.message || data.error)) || 'Photo upload karne me error aayi');
     return data;
   }
 };

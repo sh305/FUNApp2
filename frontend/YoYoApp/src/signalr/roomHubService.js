@@ -122,6 +122,12 @@ class RoomHubService {
     }
   }
 
+  async sendImageMessage(roomId, imageUrl, caption = '') {
+    if (this.connection) {
+      await this.connection.invoke('SendImageMessage', roomId, imageUrl, caption);
+    }
+  }
+
   clearListeners(eventName = null) {
     if (eventName) {
       delete this.callbacks[eventName];

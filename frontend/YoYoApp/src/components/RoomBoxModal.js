@@ -6,71 +6,113 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
+  Image,
   ActivityIndicator,
-  useWindowDimensions
+  useWindowDimensions,
+  Alert
 } from 'react-native';
-import { COLORS } from '../constants/theme';
+import { TreasureChestGraphic } from './TreasureChestGraphic';
 
 export const BOX_LEVELS = [
   {
     level: 1,
-    title: 'Silver Lucky Chest',
+    title: 'Emerald Green Chest',
     targetPoints: 12000,
     targetLabel: '12,000',
-    coins: 1500,
-    frameName: 'Neon Cyber Pulse',
-    frameIcon: '🌟',
-    animationName: 'Supercar Entry Effect',
-    animationIcon: '🏎️',
-    chestIcon: '🧰'
+    color: '#10b981',
+    chestEmoji: '🧰',
+    pedestalGlow: 'rgba(16, 185, 129, 0.4)',
+    giftImage: require('../../assets/box_swan_gift.jpg'),
+    frameImage: require('../../assets/box_crystal_frame.jpg'),
+    specialItemImage: require('../../assets/box_entry_effect.jpg'),
+    specialItemBadge: 'Hi~',
+    specialItemBadgeColor: '#d946ef',
+    prizes: {
+      grandGift: { name: 'Crystal Swan Box', coins: 10000 },
+      frame: { name: 'Amethyst Crystal Frame', coins: 10000 },
+      specialItem: { name: 'VIP Hi~ Greeting Bubble', coins: 30000 },
+      coinPacks: [100, 20, 5]
+    }
   },
   {
     level: 2,
-    title: 'Gold Treasure Chest',
+    title: 'Cyan Diamond Chest',
     targetPoints: 60000,
     targetLabel: '60,000',
-    coins: 8000,
-    frameName: 'Golden Royal Crown',
-    frameIcon: '👑',
-    animationName: 'Phoenix Wings Entry',
-    animationIcon: '🦅',
-    chestIcon: '📦'
+    color: '#06b6d4',
+    chestEmoji: '💎',
+    pedestalGlow: 'rgba(6, 182, 212, 0.4)',
+    giftImage: require('../../assets/box_supercar_gift.jpg'),
+    frameImage: require('../../assets/box_cyber_frame.jpg'),
+    specialItemImage: require('../../assets/box_entry_supercar.jpg'),
+    specialItemBadge: '🏎️ SPEED CREST',
+    specialItemBadgeColor: '#06b6d4',
+    prizes: {
+      grandGift: { name: 'Cyber Lightning Supercar', coins: 50000 },
+      frame: { name: 'Cyan Laser Cyber Frame', coins: 35000 },
+      specialItem: { name: 'Supercar Racing Crest', coins: 75000 },
+      coinPacks: [500, 100, 25]
+    }
   },
   {
     level: 3,
-    title: 'Diamond Dragon Vault',
+    title: 'Royal Sapphire Chest',
     targetPoints: 200000,
-    targetLabel: '200,000 (2 Lakh)',
-    coins: 25000,
-    frameName: 'Galaxy Overlord',
-    frameIcon: '🌌',
-    animationName: 'Dragon Flight Entry',
-    animationIcon: '🐉',
-    chestIcon: '💎'
+    targetLabel: '200,000',
+    color: '#3b82f6',
+    chestEmoji: '📦',
+    pedestalGlow: 'rgba(59, 130, 246, 0.4)',
+    giftImage: require('../../assets/box_phoenix_gift.jpg'),
+    frameImage: require('../../assets/box_crystal_frame.jpg'),
+    specialItemImage: require('../../assets/box_entry_phoenix.jpg'),
+    specialItemBadge: '👑 VIP EMBLEM',
+    specialItemBadgeColor: '#f97316',
+    prizes: {
+      grandGift: { name: 'Cosmic Phoenix Wings', coins: 150000 },
+      frame: { name: 'Galaxy Sovereign Frame', coins: 100000 },
+      specialItem: { name: 'Royal Phoenix VIP Emblem', coins: 200000 },
+      coinPacks: [2000, 500, 100]
+    }
   },
   {
     level: 4,
-    title: 'Celestial Mythic Chest',
+    title: 'Amethyst Imperial Vault',
     targetPoints: 400000,
-    targetLabel: '400,000 (4 Lakh)',
-    coins: 60000,
-    frameName: 'Diamond Emperor',
-    frameIcon: '⚡',
-    animationName: 'Spaceship Warp Entry',
-    animationIcon: '🛸',
-    chestIcon: '🏆'
+    targetLabel: '400,000',
+    color: '#a855f7',
+    chestEmoji: '🏆',
+    pedestalGlow: 'rgba(168, 85, 247, 0.4)',
+    giftImage: require('../../assets/box_dragon_gift.jpg'),
+    frameImage: require('../../assets/box_dragon_frame.jpg'),
+    specialItemImage: require('../../assets/box_dragon_gift.jpg'),
+    specialItemBadge: '🐉 DRAGON KING',
+    specialItemBadgeColor: '#eab308',
+    prizes: {
+      grandGift: { name: 'Imperial Dragon Castle', coins: 350000 },
+      frame: { name: 'Golden Fire Dragon Frame', coins: 250000 },
+      specialItem: { name: 'Golden Dragon King Medallion', coins: 400000 },
+      coinPacks: [5000, 1500, 500]
+    }
   },
   {
     level: 5,
-    title: 'Ultimate Godlike Vault',
+    title: 'Winged Godlike Sun Vault',
     targetPoints: 800000,
-    targetLabel: '800,000 (8 Lakh)',
-    coins: 150000,
-    frameName: 'Mythic Godlike Frame',
-    frameIcon: '🔥',
-    animationName: 'God of Thunder Entry',
-    animationIcon: '⚡',
-    chestIcon: '👑'
+    targetLabel: '800,000',
+    color: '#f59e0b',
+    chestEmoji: '👑',
+    pedestalGlow: 'rgba(245, 158, 11, 0.5)',
+    giftImage: require('../../assets/box_godlike_gift.jpg'),
+    frameImage: require('../../assets/box_sun_frame.jpg'),
+    specialItemImage: require('../../assets/box_godlike_gift.jpg'),
+    specialItemBadge: '🏰 SUN PALACE',
+    specialItemBadgeColor: '#fbbf24',
+    prizes: {
+      grandGift: { name: 'Celestial Sun Palace Throne', coins: 1000000 },
+      frame: { name: 'Solar God Radiant Crown Frame', coins: 600000 },
+      specialItem: { name: 'Celestial Sun Palace Room Theme', coins: 1000000 },
+      coinPacks: [20000, 5000, 1000]
+    }
   }
 ];
 
@@ -87,291 +129,396 @@ export const RoomBoxModal = ({
 
   const activeLevelData = BOX_LEVELS.find(b => b.level === selectedLevel) || BOX_LEVELS[0];
   const targetPoints = activeLevelData.targetPoints;
-  const progressRatio = Math.min(1, Math.max(0, boxPoints / targetPoints));
+
+  // Sequential Progress Logic
+  const isPastLevel = currentLevel > selectedLevel;
+  const isCurrentActiveLevel = currentLevel === selectedLevel;
+  const isFutureLevel = selectedLevel > currentLevel;
+
+  // Future levels are at 0 points; past levels are 100% done; current level uses live points
+  const displayPoints = isPastLevel
+    ? targetPoints
+    : isCurrentActiveLevel
+      ? Math.min(boxPoints, targetPoints)
+      : 0;
+
+  const progressRatio = targetPoints > 0 ? displayPoints / targetPoints : 0;
   const progressPercent = Math.floor(progressRatio * 100);
-  const canClaim = boxPoints >= targetPoints && currentLevel <= selectedLevel;
-  const isAlreadyClaimed = currentLevel > selectedLevel;
+  const canClaim = isCurrentActiveLevel && boxPoints >= targetPoints;
+  const isAlreadyClaimed = isPastLevel;
+
+  const handleHelpPress = () => {
+    Alert.alert(
+      'Treasure Box Rules',
+      '• Send gifts in the voice room to accumulate energy points.\n• Lv1: Crystal Swan Gift\n• Lv2: Cyber Lightning Supercar\n• Lv3: Cosmic Phoenix Wings\n• Lv4: Imperial Dragon Palace Castle\n• Lv5: Celestial Sun God Palace\n• Resets every day at 1:00 AM midnight.',
+      [{ text: 'Got it!' }]
+    );
+  };
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <View style={[styles.modalCard, { maxWidth: Math.min(windowWidth - 24, 460) }]}>
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <Text style={styles.headerTitleIcon}>🧰</Text>
-              <View>
-                <Text style={styles.headerTitle}>Lucky Room Box</Text>
-                <Text style={styles.headerSubtitle}>5 Levels of Epic Rewards</Text>
-              </View>
-            </View>
-            <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
-              <Text style={styles.closeBtnText}>✕</Text>
+      <TouchableOpacity
+        style={styles.backdrop}
+        activeOpacity={1}
+        onPress={onClose}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          style={[styles.sheetContainer, { maxWidth: Math.min(windowWidth, 480) }]}
+          onPress={e => e.stopPropagation()}
+        >
+          {/* Top Title & Help Icon */}
+          <View style={styles.headerRow}>
+            <View style={{ width: 28 }} />
+            <Text style={styles.headerTitle}>Send gifts to open the treasure box!</Text>
+            <TouchableOpacity
+              style={styles.helpBtn}
+              onPress={handleHelpPress}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={styles.helpBtnText}>?</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Current Points Pill */}
-          <View style={styles.pointsPill}>
-            <Text style={styles.pointsLabel}>Room Box Energy:</Text>
-            <Text style={styles.pointsValue}>🔥 {boxPoints.toLocaleString()} Points</Text>
-          </View>
-
-          {/* 5-Level Horizontal Selector */}
-          <View style={styles.tierTabsContainer}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tierTabs}>
-              {BOX_LEVELS.map(box => {
+          {/* 5-Level Horizontal Progression Line */}
+          <View style={styles.levelChainContainer}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.levelChainScroll}
+            >
+              {BOX_LEVELS.map((box, index) => {
                 const isSelected = box.level === selectedLevel;
-                const isCompleted = currentLevel > box.level;
-                const isReady = boxPoints >= box.targetPoints && !isCompleted;
+                const isDone = currentLevel > box.level;
 
                 return (
-                  <TouchableOpacity
-                    key={`box_tab_${box.level}`}
-                    style={[
-                      styles.tierTab,
-                      isSelected && styles.tierTabSelected,
-                      isReady && styles.tierTabReady
-                    ]}
-                    onPress={() => setSelectedLevel(box.level)}
-                  >
-                    <View style={styles.tierTabChestIconWrapper}>
-                      <Text style={styles.tierTabChestIcon}>{box.chestIcon}</Text>
-                      {isCompleted && (
-                        <View style={styles.checkBadge}>
-                          <Text style={styles.checkBadgeText}>✓</Text>
+                  <React.Fragment key={`tier_box_${box.level}`}>
+                    <TouchableOpacity
+                      style={styles.tierNode}
+                      activeOpacity={0.8}
+                      onPress={() => setSelectedLevel(box.level)}
+                    >
+                      {/* Glow Platform under selected chest */}
+                      {isSelected ? (
+                        <View style={styles.spotlightWrapper}>
+                          <View style={styles.spotlightCone} />
+                          <View style={styles.spotlightDisc} />
                         </View>
+                      ) : (
+                        <View style={styles.spotlightPlaceholder} />
                       )}
-                      {isReady && (
-                        <View style={styles.readyBadge}>
-                          <Text style={styles.readyBadgeText}>CLAIM</Text>
-                        </View>
-                      )}
-                    </View>
-                    <Text style={[styles.tierTabLevel, isSelected && styles.tierTabLevelSelected]}>
-                      Lv.{box.level}
-                    </Text>
-                    <Text style={styles.tierTabPoints}>{box.targetLabel.split(' ')[0]}</Text>
-                  </TouchableOpacity>
+
+                      {/* 3D Custom Treasure Chest representation */}
+                      <View style={[styles.chestContainer, isSelected && styles.chestContainerSelected]}>
+                        <TreasureChestGraphic
+                          level={box.level}
+                          isSelected={isSelected}
+                          size={isSelected ? 44 : 38}
+                        />
+                        {isDone && (
+                          <View style={styles.doneCheck}>
+                            <Text style={styles.doneCheckText}>✓</Text>
+                          </View>
+                        )}
+                        {!isDone && box.level > currentLevel && (
+                          <View style={styles.lockBadge}>
+                            <Text style={styles.lockBadgeText}>🔒</Text>
+                          </View>
+                        )}
+                      </View>
+
+                      {/* Hexagonal Lv Badge */}
+                      <View style={[styles.levelHexBadge, isSelected && styles.levelHexBadgeActive]}>
+                        <Text style={[styles.levelHexText, isSelected && styles.levelHexTextActive]}>
+                          Lv{box.level}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+
+                    {/* Arrow between tiers */}
+                    {index < BOX_LEVELS.length - 1 && (
+                      <View style={styles.chainArrow}>
+                        <Text style={styles.chainArrowText}>➔</Text>
+                      </View>
+                    )}
+                  </React.Fragment>
                 );
               })}
             </ScrollView>
           </View>
 
-          {/* Active Box Card */}
-          <View style={styles.activeBoxCard}>
-            <View style={styles.activeBoxHeader}>
-              <View style={styles.chestBigWrapper}>
-                <Text style={styles.chestBigIcon}>{activeLevelData.chestIcon}</Text>
-                <View style={styles.chestGlow} />
-              </View>
-              <View style={styles.activeBoxTitleCol}>
-                <Text style={styles.activeBoxLevelBadge}>LEVEL {activeLevelData.level} BOX</Text>
-                <Text style={styles.activeBoxTitle}>{activeLevelData.title}</Text>
-                <Text style={styles.activeBoxPointsReq}>
-                  Goal: {activeLevelData.targetLabel} Points
-                </Text>
-              </View>
-            </View>
-
-            {/* Live Progress Bar */}
-            <View style={styles.progressContainer}>
-              <View style={styles.progressBarTrack}>
+          {/* Key Slider Progress Bar */}
+          <View style={styles.progressBarWrapper}>
+            <View style={styles.progressTrackCapsule}>
+              {/* Animated Progress Fill (Only when progress > 0) */}
+              {progressPercent > 0 && (
                 <View
                   style={[
-                    styles.progressBarFill,
+                    styles.progressFillGradient,
                     { width: `${progressPercent}%` }
                   ]}
                 />
-              </View>
-              <View style={styles.progressTextRow}>
-                <Text style={styles.progressNumbers}>
-                  {boxPoints.toLocaleString()} / {targetPoints.toLocaleString()}
-                </Text>
-                <Text style={styles.progressPercentText}>{progressPercent}%</Text>
-              </View>
-            </View>
-
-            {/* Rewards Included */}
-            <View style={styles.rewardsBox}>
-              <Text style={styles.rewardsTitle}>🎁 UNLOCK REWARDS:</Text>
-              <View style={styles.rewardItem}>
-                <Text style={styles.rewardIcon}>🪙</Text>
-                <View style={styles.rewardInfo}>
-                  <Text style={styles.rewardName}>+{activeLevelData.coins.toLocaleString()} YoYo Coins</Text>
-                  <Text style={styles.rewardDesc}>Added directly to your balance</Text>
-                </View>
-              </View>
-              <View style={styles.rewardItem}>
-                <Text style={styles.rewardIcon}>{activeLevelData.frameIcon}</Text>
-                <View style={styles.rewardInfo}>
-                  <Text style={styles.rewardName}>{activeLevelData.frameName}</Text>
-                  <Text style={styles.rewardDesc}>Exclusive animated room frame</Text>
-                </View>
-              </View>
-              <View style={styles.rewardItem}>
-                <Text style={styles.rewardIcon}>{activeLevelData.animationIcon}</Text>
-                <View style={styles.rewardInfo}>
-                  <Text style={styles.rewardName}>{activeLevelData.animationName}</Text>
-                  <Text style={styles.rewardDesc}>Special entrance show-off animation</Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Action Claim Button */}
-            {isAlreadyClaimed ? (
-              <View style={styles.claimedPill}>
-                <Text style={styles.claimedText}>✓ ALREADY OPENED</Text>
-              </View>
-            ) : (
-              <TouchableOpacity
+              )}
+              {/* Golden Key Head */}
+              <View
                 style={[
-                  styles.claimBtn,
-                  !canClaim && styles.claimBtnDisabled
+                  styles.keyIconWrapper,
+                  { left: progressPercent > 0 ? `${Math.min(progressPercent - 3, 90)}%` : -12 }
                 ]}
-                disabled={!canClaim || claiming}
-                onPress={() => onClaimBox(activeLevelData.level)}
               >
-                {claiming ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <>
-                    <Text style={styles.claimBtnText}>
-                      {canClaim ? '🎉 OPEN BOX NOW!' : `Need ${(targetPoints - boxPoints).toLocaleString()} More Points`}
-                    </Text>
-                    {!canClaim && (
-                      <Text style={styles.claimBtnSubText}>Send gifts in room to boost energy 🚀</Text>
-                    )}
-                  </>
-                )}
-              </TouchableOpacity>
-            )}
+                <Text style={styles.keyEmoji}>🔑</Text>
+              </View>
+            </View>
+
+            {/* Points Fraction Underneath */}
+            <Text style={styles.pointsFractionText}>
+              {isPastLevel
+                ? `✓ Level ${activeLevelData.level} Completed (${targetPoints.toLocaleString()} / ${targetPoints.toLocaleString()})`
+                : isFutureLevel
+                  ? `🔒 Locked (Complete Lv${currentLevel} first • 0 / ${targetPoints.toLocaleString()})`
+                  : `${displayPoints.toLocaleString()} / ${targetPoints.toLocaleString()}`}
+            </Text>
           </View>
-        </View>
-      </View>
+
+          {/* Prize Section Header */}
+          <View style={styles.prizeHeaderRow}>
+            <Text style={styles.prizeSectionTitle}>
+              Prize <Text style={styles.prizeTierHighlight}>({activeLevelData.title})</Text>
+            </Text>
+          </View>
+
+          {/* Prize Grid Matching Exact Screenshot Layout */}
+          <View style={styles.prizeGrid}>
+            {/* Left Big Card: Grand Level-Specific Gift */}
+            <View style={styles.grandPrizeCard}>
+              <Image
+                source={activeLevelData.giftImage}
+                style={styles.grandPrizeImg}
+                resizeMode="cover"
+              />
+              <View style={styles.pricePill}>
+                <View style={styles.yellowDot} />
+                <Text style={styles.pricePillText}>
+                  {activeLevelData.prizes.grandGift.coins.toLocaleString()}
+                </Text>
+              </View>
+            </View>
+
+            {/* Right Column: 2 Rows */}
+            <View style={styles.rightPrizeCol}>
+              {/* Row 1: Level-Specific Frame & VIP Entry Banner */}
+              <View style={styles.rightPrizeRow}>
+                {/* Frame Card */}
+                <View style={styles.smallPrizeCard}>
+                  <Image
+                    source={activeLevelData.frameImage}
+                    style={styles.smallPrizeImg}
+                    resizeMode="cover"
+                  />
+                  <View style={styles.pricePill}>
+                    <View style={styles.yellowDot} />
+                    <Text style={styles.pricePillText}>
+                      {activeLevelData.prizes.frame.coins.toLocaleString()}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Unique Special Reward Card (Level 1: Hi~, Level 2: Supercar, Level 3: VIP Emblem, Level 4: Dragon Medallion, Level 5: Sun Palace) */}
+                <View style={styles.smallPrizeCard}>
+                  <View style={styles.entryImgWrapper}>
+                    <Image
+                      source={activeLevelData.specialItemImage}
+                      style={styles.smallPrizeImg}
+                      resizeMode="cover"
+                    />
+                    <View style={[styles.entryBadgePill, { backgroundColor: activeLevelData.specialItemBadgeColor || '#9333ea' }]}>
+                      <Text style={styles.entryBadgePillText}>{activeLevelData.specialItemBadge || 'VIP'}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.pricePill}>
+                    <View style={styles.yellowDot} />
+                    <Text style={styles.pricePillText}>
+                      {activeLevelData.prizes.specialItem.coins.toLocaleString()}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Row 2: Gold Coin Stacks (Big, Medium, Small) */}
+              <View style={styles.rightPrizeRow}>
+                {activeLevelData.prizes.coinPacks.map((amount, idx) => (
+                  <View key={`coin_pack_${idx}`} style={styles.coinPrizeCard}>
+                    <Image
+                      source={require('../../assets/box_gold_coins.jpg')}
+                      style={[
+                        styles.coinStackImg,
+                        idx === 1 && { transform: [{ scale: 0.9 }] },
+                        idx === 2 && { transform: [{ scale: 0.8 }] }
+                      ]}
+                      resizeMode="contain"
+                    />
+                    <View style={styles.pricePill}>
+                      <View style={styles.yellowDot} />
+                      <Text style={styles.pricePillText}>{amount.toLocaleString()}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </View>
+          </View>
+
+          {/* Bottom Claim Action or Info Notice */}
+          {canClaim ? (
+            <TouchableOpacity
+              style={styles.claimPrizeBtn}
+              activeOpacity={0.85}
+              disabled={claiming}
+              onPress={() => onClaimBox(activeLevelData.level)}
+            >
+              {claiming ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.claimPrizeBtnText}>
+                  🎉 CLAIM LV{activeLevelData.level} ({activeLevelData.prizes.grandGift.name}) PRIZES!
+                </Text>
+              )}
+            </TouchableOpacity>
+          ) : isAlreadyClaimed ? (
+            <View style={styles.alreadyClaimedNotice}>
+              <Text style={styles.alreadyClaimedText}>✓ Level {activeLevelData.level} Already Claimed</Text>
+            </View>
+          ) : (
+            <Text style={styles.footerMidnightText}>
+              Restart every day at 1:00 a.m midnight.
+            </Text>
+          )}
+        </TouchableOpacity>
+      </TouchableOpacity>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  overlay: {
+  backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(8, 6, 25, 0.88)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 12
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    justifyContent: 'flex-end',
+    alignItems: 'center'
   },
-  modalCard: {
+  sheetContainer: {
     width: '100%',
-    backgroundColor: '#1b123a',
-    borderRadius: 24,
-    borderWidth: 1.5,
+    backgroundColor: '#380962',
+    borderTopLeftRadius: 26,
+    borderTopRightRadius: 26,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 28,
+    borderTopWidth: 1.5,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
     borderColor: 'rgba(168, 85, 247, 0.4)',
-    padding: 16,
-    shadowColor: '#a855f7',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.45,
-    shadowRadius: 18,
-    elevation: 12
+    shadowColor: '#9333ea',
+    shadowOffset: { width: 0, height: -6 },
+    shadowOpacity: 0.6,
+    shadowRadius: 16,
+    elevation: 20
   },
-  header: {
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 12
   },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10
-  },
-  headerTitleIcon: {
-    fontSize: 28
-  },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '800',
+    fontSize: 15,
+    fontWeight: '700',
     color: '#ffffff',
-    letterSpacing: 0.5
+    textAlign: 'center',
+    letterSpacing: 0.2
   },
-  headerSubtitle: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.65)'
-  },
-  closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  helpBtn: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
     justifyContent: 'center',
     alignItems: 'center'
   },
-  closeBtnText: {
+  helpBtnText: {
     color: '#ffffff',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: 'bold'
   },
-  pointsPill: {
+  levelChainContainer: {
+    marginVertical: 6
+  },
+  levelChainScroll: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: 'rgba(139, 92, 246, 0.25)',
-    borderWidth: 1,
-    borderColor: 'rgba(192, 132, 252, 0.4)',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 12,
-    marginBottom: 14
+    paddingHorizontal: 4,
+    paddingVertical: 4
   },
-  pointsLabel: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontWeight: '600'
-  },
-  pointsValue: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#facc15'
-  },
-  tierTabsContainer: {
-    marginBottom: 14
-  },
-  tierTabs: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingVertical: 2
-  },
-  tierTab: {
-    width: 66,
-    paddingVertical: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    borderRadius: 14,
+  tierNode: {
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)'
-  },
-  tierTabSelected: {
-    backgroundColor: 'rgba(168, 85, 247, 0.35)',
-    borderColor: '#c084fc',
-    shadowColor: '#a855f7',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.6,
-    shadowRadius: 6,
-    elevation: 4
-  },
-  tierTabReady: {
-    borderColor: '#facc15',
-    backgroundColor: 'rgba(250, 204, 21, 0.15)'
-  },
-  tierTabChestIconWrapper: {
+    width: 62,
     position: 'relative'
   },
-  tierTabChestIcon: {
-    fontSize: 22
-  },
-  checkBadge: {
+  spotlightWrapper: {
     position: 'absolute',
-    top: -4,
-    right: -8,
+    top: 6,
+    width: 60,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    zIndex: 1
+  },
+  spotlightCone: {
+    position: 'absolute',
+    width: 48,
+    height: 38,
+    backgroundColor: 'rgba(217, 70, 239, 0.18)',
+    borderRadius: 24,
+    transform: [{ scaleY: 0.7 }]
+  },
+  spotlightDisc: {
+    width: 54,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: 'rgba(232, 121, 249, 0.65)',
+    borderWidth: 1,
+    borderColor: '#f0abfc',
+    shadowColor: '#d946ef',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.9,
+    shadowRadius: 8
+  },
+  spotlightPlaceholder: {
+    height: 14,
+    marginBottom: 2
+  },
+  chestContainer: {
+    width: 46,
+    height: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
+    marginTop: 2
+  },
+  chestContainerSelected: {
+    transform: [{ scale: 1.1 }]
+  },
+  chestEmoji: {
+    fontSize: 26
+  },
+  chestEmojiSelected: {
+    fontSize: 30
+  },
+  doneCheck: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
     backgroundColor: '#22c55e',
     width: 14,
     height: 14,
@@ -379,199 +526,265 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center'
   },
-  checkBadgeText: {
-    color: '#fff',
+  doneCheckText: {
+    color: '#ffffff',
     fontSize: 9,
     fontWeight: '900'
   },
-  readyBadge: {
+  lockBadge: {
     position: 'absolute',
-    top: -6,
-    right: -14,
-    backgroundColor: '#facc15',
-    paddingHorizontal: 3,
-    paddingVertical: 1,
-    borderRadius: 4
+    top: -3,
+    right: -3,
+    backgroundColor: 'rgba(15, 6, 40, 0.85)',
+    width: 15,
+    height: 15,
+    borderRadius: 7.5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)'
   },
-  readyBadgeText: {
-    color: '#000',
-    fontSize: 8,
-    fontWeight: '900'
+  lockBadgeText: {
+    fontSize: 8
   },
-  tierTabLevel: {
-    fontSize: 11,
+  levelHexBadge: {
+    marginTop: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 2,
+    borderRadius: 12,
+    borderWidth: 1.2,
+    borderColor: 'rgba(245, 158, 11, 0.5)',
+    backgroundColor: 'rgba(25, 8, 45, 0.9)',
+    alignItems: 'center',
+    zIndex: 3
+  },
+  levelHexBadgeActive: {
+    borderColor: '#fbbf24',
+    backgroundColor: '#200539',
+    shadowColor: '#f59e0b',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
+    elevation: 3
+  },
+  levelHexText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: 'rgba(255, 255, 255, 0.7)'
+  },
+  levelHexTextActive: {
+    color: '#fbbf24'
+  },
+  chainArrow: {
+    marginHorizontal: 3,
+    marginBottom: 10
+  },
+  chainArrowText: {
+    fontSize: 14,
+    color: 'rgba(192, 132, 252, 0.5)',
+    fontWeight: 'bold'
+  },
+  progressBarWrapper: {
+    marginTop: 10,
+    marginBottom: 14,
+    alignItems: 'center'
+  },
+  progressTrackCapsule: {
+    width: '100%',
+    height: 16,
+    borderRadius: 10,
+    backgroundColor: 'rgba(15, 6, 40, 0.85)',
+    borderWidth: 1.5,
+    borderColor: '#0284c7',
+    position: 'relative',
+    justifyContent: 'center',
+    paddingHorizontal: 2
+  },
+  progressFillGradient: {
+    height: 10,
+    borderRadius: 6,
+    backgroundColor: '#06b6d4',
+    shadowColor: '#06b6d4',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 6
+  },
+  keyIconWrapper: {
+    position: 'absolute',
+    top: -8,
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10
+  },
+  keyEmoji: {
+    fontSize: 22,
+    transform: [{ rotate: '-30deg' }]
+  },
+  pointsFractionText: {
+    marginTop: 6,
+    fontSize: 12,
     fontWeight: '700',
+    color: 'rgba(255, 255, 255, 0.9)',
+    letterSpacing: 0.5
+  },
+  prizeHeaderRow: {
+    marginBottom: 8
+  },
+  prizeSectionTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#ffffff',
+    letterSpacing: 0.3
+  },
+  prizeTierHighlight: {
+    color: '#fbbf24',
+    fontSize: 12,
+    fontWeight: '700'
+  },
+  prizeGrid: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 14
+  },
+  grandPrizeCard: {
+    flex: 1.2,
+    height: 156,
+    backgroundColor: 'rgba(18, 5, 38, 0.85)',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(168, 85, 247, 0.3)',
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 6
+  },
+  grandPrizeImg: {
+    width: '100%',
+    height: 114,
+    borderRadius: 10
+  },
+  rightPrizeCol: {
+    flex: 2,
+    height: 156,
+    justifyContent: 'space-between'
+  },
+  rightPrizeRow: {
+    flexDirection: 'row',
+    gap: 8,
+    height: 74
+  },
+  smallPrizeCard: {
+    flex: 1,
+    backgroundColor: 'rgba(18, 5, 38, 0.85)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(168, 85, 247, 0.25)',
+    padding: 4,
+    alignItems: 'center',
+    justifyContent: 'space-between'
+  },
+  entryImgWrapper: {
+    width: '100%',
+    height: 44,
+    position: 'relative',
+    borderRadius: 8,
+    overflow: 'hidden'
+  },
+  entryBadgePill: {
+    position: 'absolute',
+    bottom: 2,
+    left: 2,
+    right: 2,
+    paddingVertical: 1,
+    borderRadius: 4,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  entryBadgePillText: {
+    color: '#ffffff',
+    fontSize: 8,
+    fontWeight: '900',
+    letterSpacing: 0.5
+  },
+  smallPrizeImg: {
+    width: '100%',
+    height: 44,
+    borderRadius: 8
+  },
+  coinPrizeCard: {
+    flex: 1,
+    backgroundColor: 'rgba(18, 5, 38, 0.85)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(168, 85, 247, 0.25)',
+    padding: 4,
+    alignItems: 'center',
+    justifyContent: 'space-between'
+  },
+  coinStackImg: {
+    width: 38,
+    height: 42
+  },
+  pricePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 8,
+    gap: 4
+  },
+  yellowDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#facc15'
+  },
+  pricePillText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#ffffff'
+  },
+  footerMidnightText: {
+    textAlign: 'center',
+    fontSize: 11,
     color: 'rgba(255, 255, 255, 0.6)',
     marginTop: 4
   },
-  tierTabLevelSelected: {
-    color: '#ffffff'
-  },
-  tierTabPoints: {
-    fontSize: 9,
-    color: '#a855f7',
-    fontWeight: '600',
-    marginTop: 1
-  },
-  activeBoxCard: {
-    backgroundColor: 'rgba(30, 20, 60, 0.85)',
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    padding: 14
-  },
-  activeBoxHeader: {
-    flexDirection: 'row',
+  claimPrizeBtn: {
+    backgroundColor: '#9333ea',
+    borderRadius: 16,
+    paddingVertical: 12,
     alignItems: 'center',
-    gap: 12,
-    marginBottom: 12
-  },
-  chestBigWrapper: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(168, 85, 247, 0.25)',
     borderWidth: 1.5,
     borderColor: '#c084fc',
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative'
-  },
-  chestBigIcon: {
-    fontSize: 32
-  },
-  chestGlow: {
-    position: 'absolute',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(192, 132, 252, 0.2)'
-  },
-  activeBoxTitleCol: {
-    flex: 1
-  },
-  activeBoxLevelBadge: {
-    fontSize: 10,
-    color: '#c084fc',
-    fontWeight: '800',
-    letterSpacing: 0.8
-  },
-  activeBoxTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#ffffff',
-    marginTop: 2
-  },
-  activeBoxPointsReq: {
-    fontSize: 12,
-    color: '#facc15',
-    fontWeight: '600',
-    marginTop: 2
-  },
-  progressContainer: {
-    marginBottom: 14
-  },
-  progressBarTrack: {
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    overflow: 'hidden'
-  },
-  progressBarFill: {
-    height: '100%',
-    borderRadius: 4,
-    backgroundColor: '#06b6d4'
-  },
-  progressTextRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    shadowColor: '#a855f7',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.8,
+    shadowRadius: 10,
+    elevation: 8,
     marginTop: 4
   },
-  progressNumbers: {
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.65)'
+  claimPrizeBtnText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 0.5
   },
-  progressPercentText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#06b6d4'
-  },
-  rewardsBox: {
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    borderRadius: 14,
-    padding: 10,
-    marginBottom: 14,
-    gap: 8
-  },
-  rewardsTitle: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: 'rgba(255, 255, 255, 0.7)',
-    letterSpacing: 0.5,
-    marginBottom: 2
-  },
-  rewardItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10
-  },
-  rewardIcon: {
-    fontSize: 20
-  },
-  rewardInfo: {
-    flex: 1
-  },
-  rewardName: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#ffffff'
-  },
-  rewardDesc: {
-    fontSize: 10,
-    color: 'rgba(255, 255, 255, 0.5)'
-  },
-  claimedPill: {
+  alreadyClaimedNotice: {
     backgroundColor: 'rgba(34, 197, 94, 0.2)',
     borderWidth: 1,
     borderColor: '#22c55e',
-    borderRadius: 14,
-    paddingVertical: 12,
-    alignItems: 'center'
+    borderRadius: 12,
+    paddingVertical: 8,
+    alignItems: 'center',
+    marginTop: 4
   },
-  claimedText: {
+  alreadyClaimedText: {
     color: '#22c55e',
     fontWeight: '800',
-    fontSize: 13,
-    letterSpacing: 0.5
-  },
-  claimBtn: {
-    backgroundColor: '#9333ea',
-    borderRadius: 14,
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#c084fc',
-    shadowColor: '#9333ea',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.6,
-    shadowRadius: 10,
-    elevation: 6
-  },
-  claimBtnDisabled: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    shadowOpacity: 0,
-    elevation: 0
-  },
-  claimBtnText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#ffffff',
-    letterSpacing: 0.5
-  },
-  claimBtnSubText: {
-    fontSize: 10,
-    color: 'rgba(255, 255, 255, 0.5)',
-    marginTop: 2
+    fontSize: 12
   }
 });

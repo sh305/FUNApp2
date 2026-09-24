@@ -1,4 +1,4 @@
-import { API_BASE_URL } from './config';
+import { API_BASE_URL, parseApiResponse } from './config';
 
 export const moderationApi = {
   async reportUser(token, { reportedUserId, reason, durationType }) {
@@ -10,8 +10,8 @@ export const moderationApi = {
       },
       body: JSON.stringify({ reportedUserId, reason, durationType })
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Report submission error');
+    const data = await parseApiResponse(res);
+    if (!res.ok) throw new Error((data && (data.message || data.error)) || 'Report submission error');
     return data;
   }
 };

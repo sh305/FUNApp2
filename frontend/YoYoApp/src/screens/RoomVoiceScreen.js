@@ -11,9 +11,14 @@ import {
   Platform,
   TextInput,
   Modal,
+  Image,
   SafeAreaView,
-  StatusBar
+  StatusBar,
+  ScrollView,
+  TouchableWithoutFeedback,
+  Keyboard
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { COLORS } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
 import { roomApi } from '../api/roomApi';
@@ -33,7 +38,10 @@ import { KickUserModal } from '../components/KickUserModal';
 import { ReportUserModal } from '../components/ReportUserModal';
 import { UserProfileModal } from '../components/UserProfileModal';
 import { RoomBoxModal, BOX_LEVELS } from '../components/RoomBoxModal';
-import { EmojiPickerModal } from '../components/EmojiPickerModal';
+import { EmojiPickerModal, EMOJI_CATEGORIES, QUICK_EMOJIS } from '../components/EmojiPickerModal';
+import { EntryEffectOverlay } from '../components/EntryEffectOverlay';
+import { TreasureChestGraphic } from '../components/TreasureChestGraphic';
+import { GameCenterModal } from '../components/games/GameCenterModal';
 
 export const RoomVoiceScreen = ({ roomId, roomPassword, onLeave }) => {
   const { user, token, updateCoins, refreshProfile } = useAuth();
@@ -54,6 +62,7 @@ export const RoomVoiceScreen = ({ roomId, roomPassword, onLeave }) => {
 
   // Modals state
   const [activeGiftEvent, setActiveGiftEvent] = useState(null);
+  const [activeEntryEvent, setActiveEntryEvent] = useState(null);
   const [sendGiftModalVisible, setSendGiftModalVisible] = useState(false);
   const [lockModalVisible, setLockModalVisible] = useState(false);
   const [profileModalVisible, setProfileModalVisible] = useState(false);
@@ -62,10 +71,15 @@ export const RoomVoiceScreen = ({ roomId, roomPassword, onLeave }) => {
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [roomToolsVisible, setRoomToolsVisible] = useState(false);
   const [emojiModalVisible, setEmojiModalVisible] = useState(false);
+  const [gameCenterVisible, setGameCenterVisible] = useState(false);
 
-  // Chat inline input state
+  // Chat inline, photo & WhatsApp-style emoji board state
   const [inlineChatOpen, setInlineChatOpen] = useState(false);
   const [inlineComment, setInlineComment] = useState('');
+  const [selectedPhoto, setSelectedPhoto] = useState(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [selectedEmojiCat, setSelectedEmojiCat] = useState('smileys');
 
   const isOwner = room?.ownerId === user?.id;
 
@@ -131,6 +145,13 @@ export const RoomVoiceScreen = ({ roomId, roomPassword, onLeave }) => {
           content: `Welcome to ${data.title}! Please maintain respect and enjoy your stay!`
         }
       ]);
+
+      // Trigger self entry effect
+      setActiveEntryEvent({
+        displayName: user?.displayName || 'Host',
+        userLevel: user?.userLevel || 25,
+        avatarUrl: user?.avatarUrl
+      });
     } catch (err) {
       Alert.alert('Room Error', err.message || 'Room load nahi ho paya.', [
         { text: 'OK', onPress: onLeave }
@@ -143,6 +164,13 @@ export const RoomVoiceScreen = ({ roomId, roomPassword, onLeave }) => {
   const setupSignalRListeners = () => {
     // Clear any previous listeners to prevent duplicate executions
     roomHubService.clearListeners();
+
+    // 0. User Joined Room Entry Effect
+    roomHubService.on('UserJoinedRoom', (data) => {
+      if (data && data.displayName) {
+        setActiveEntryEvent(data);
+      }
+    });
 
     // 1. Seat Occupied
     roomHubService.on('SeatOccupied', (data) => {
@@ -358,9 +386,84 @@ export const RoomVoiceScreen = ({ roomId, roomPassword, onLeave }) => {
 
   const handleSendMessage = async (text) => {
     if (!text?.trim()) return;
-    await roomHubService.sendMessage(roomId, text.trim());
-    setInlineComment('');
-    setInlineChatOpen(false);
+    try {
+      await roomHubService.sendMessage(roomId, text.trim());
+      setInlineComment('');
+      setSelectedPhoto(null);
+      setShowEmojiPicker(false);
+      setInlineChatOpen(false);
+    } catch (err) {
+      console.warn('Failed to send message:', err);
+    }
+  };
+
+  const handleEmojiSelect = (emoji) => {
+    setInlineComment(prev => prev + emoji);
+  };
+
+  const handleBackspace = () => {
+    setInlineComment(prev => {
+      if (!prev) return '';
+      const chars = Array.from(prev);
+      chars.pop();
+      return chars.join('');
+    });
+  };
+
+  const handlePickPhoto = async () => {
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert('Permission Denied', 'Photo select karne ke liye Gallery permission allow karein.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: false,
+        quality: 0.7,
+        base64: true
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        setSelectedPhoto({
+          uri: asset.uri,
+          base64: asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : null
+        });
+        setInlineChatOpen(true);
+      }
+    } catch (err) {
+      Alert.alert('Photo Error', err.message || 'Photo pick karne me problem aayi');
+    }
+  };
+
+  const handleSendCommentOrPhoto = async () => {
+    if (selectedPhoto) {
+      try {
+        setIsUploadingPhoto(true);
+        const photoPayload = selectedPhoto.base64 || selectedPhoto.uri;
+        const caption = inlineComment.trim();
+        const res = await roomApi.uploadRoomPhoto(token, roomId, photoPayload, caption);
+        if (!res || !res.success) {
+          await roomHubService.sendImageMessage(roomId, photoPayload, caption);
+        }
+        setSelectedPhoto(null);
+        setInlineComment('');
+        setInlineChatOpen(false);
+      } catch (err) {
+        try {
+          await roomHubService.sendImageMessage(roomId, selectedPhoto.base64 || selectedPhoto.uri, inlineComment.trim());
+          setSelectedPhoto(null);
+          setInlineComment('');
+          setInlineChatOpen(false);
+        } catch (hubErr) {
+          Alert.alert('Upload Error', err.message || 'Photo bhejte waqt error aayi.');
+        }
+      } finally {
+        setIsUploadingPhoto(false);
+      }
+    } else if (inlineComment.trim()) {
+      await handleSendMessage(inlineComment.trim());
+    }
   };
 
   const handleClaimBox = async (level) => {
@@ -423,6 +526,12 @@ export const RoomVoiceScreen = ({ roomId, roomPassword, onLeave }) => {
           onDismiss={() => setActiveGiftEvent(null)}
         />
 
+        {/* Animated VIP Hi~ Entry Effect Banner */}
+        <EntryEffectOverlay
+          entryData={activeEntryEvent}
+          onDismiss={() => setActiveEntryEvent(null)}
+        />
+
         {/* TOP HEADER */}
         <View style={styles.header}>
           {/* Left Room Card Pill */}
@@ -480,7 +589,7 @@ export const RoomVoiceScreen = ({ roomId, roomPassword, onLeave }) => {
               onPress={() => setBoxModalVisible(true)}
             >
               <View style={styles.luckyChestIconWrapper}>
-                <Text style={styles.luckyChestIcon}>🧰</Text>
+                <TreasureChestGraphic level={currentBoxLevel} size={38} />
                 {boxPoints >= currentBoxTarget && (
                   <View style={styles.boxReadyDot} />
                 )}
@@ -555,59 +664,266 @@ export const RoomVoiceScreen = ({ roomId, roomPassword, onLeave }) => {
           />
         </View>
 
-        {/* INLINE COMMENT POPUP (WHEN "कमेंट लिखिए" IS TAPPED) */}
-        {inlineChatOpen && (
-          <View style={styles.inlineInputBar}>
-            <TextInput
-              style={styles.inlineTextInput}
-              placeholder="कमेंट लिखिए..."
-              placeholderTextColor="#94a3b8"
-              value={inlineComment}
-              onChangeText={setInlineComment}
-              autoFocus
-              onSubmitEditing={() => handleSendMessage(inlineComment)}
-            />
-            <TouchableOpacity
-              style={styles.inlineEmojiBtn}
-              onPress={() => setEmojiModalVisible(true)}
+        {/* KEYBOARD-SAFE COMMENT & PHOTO INPUT MODAL */}
+        <Modal
+          visible={inlineChatOpen}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => {
+            setInlineChatOpen(false);
+            setSelectedPhoto(null);
+          }}
+        >
+          <KeyboardAvoidingView
+            style={styles.commentModalOverlay}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          >
+            {/* Tap backdrop to dismiss keyboard and close modal */}
+            <TouchableWithoutFeedback
+              onPress={() => {
+                setInlineChatOpen(false);
+                setSelectedPhoto(null);
+                Keyboard.dismiss();
+              }}
             >
-              <Text style={{ fontSize: 18 }}>😊</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.inlineSendBtn, !inlineComment.trim() && styles.inlineSendBtnDisabled]}
-              disabled={!inlineComment.trim()}
-              onPress={() => handleSendMessage(inlineComment)}
-            >
-              <Text style={styles.inlineSendIcon}>➤</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.inlineCancelBtn}
-              onPress={() => setInlineChatOpen(false)}
-            >
-              <Text style={styles.inlineCancelText}>✕</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+              <View style={styles.commentModalBackdrop} />
+            </TouchableWithoutFeedback>
+
+            {/* Input Card Docked Directly Above Virtual Keyboard */}
+            <View style={styles.commentModalCard}>
+              {/* Quick Greeting / Reaction Chips */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.quickChipsContent}
+                style={styles.quickChipsScrollView}
+                keyboardShouldPersistTaps="handled"
+              >
+                {['Hi 👋', 'Namaste 🙏', 'Wah! 👏', 'Welcome 🎉', 'Nice Voice 🎵', 'Follow 💖', 'Hello 😊', 'Superb 🌟'].map((chip, idx) => (
+                  <TouchableOpacity
+                    key={idx}
+                    style={styles.quickChip}
+                    onPress={() => {
+                      if (selectedPhoto) {
+                        setInlineComment(prev => prev ? `${prev} ${chip}` : chip);
+                      } else {
+                        handleSendMessage(chip);
+                      }
+                    }}
+                  >
+                    <Text style={styles.quickChipText}>{chip}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              {/* Selected Photo Attachment Preview with Tick (✔) Upload Button */}
+              {selectedPhoto && (
+                <View style={styles.photoAttachedCard}>
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={handleSendCommentOrPhoto}
+                    disabled={isUploadingPhoto}
+                  >
+                    <Image source={{ uri: selectedPhoto.uri }} style={styles.photoAttachedThumb} resizeMode="cover" />
+                  </TouchableOpacity>
+
+                  <View style={styles.photoAttachedInfo}>
+                    <Text style={styles.photoAttachedTitle}>📷 Photo Selected</Text>
+                    <Text style={styles.photoAttachedSub}>
+                      {isUploadingPhoto ? 'Uploading...' : 'Tick (✔) dabayein photo upload karne ke liye'}
+                    </Text>
+                  </View>
+
+                  {/* Direct Tick (✔) Upload Button */}
+                  <TouchableOpacity
+                    style={styles.photoUploadTickBtn}
+                    onPress={handleSendCommentOrPhoto}
+                    disabled={isUploadingPhoto}
+                  >
+                    {isUploadingPhoto ? (
+                      <ActivityIndicator size="small" color="#ffffff" />
+                    ) : (
+                      <Text style={styles.photoUploadTickIcon}>✔</Text>
+                    )}
+                  </TouchableOpacity>
+
+                  {/* Cancel / Remove Button */}
+                  <TouchableOpacity
+                    style={styles.photoRemoveBtn}
+                    onPress={() => setSelectedPhoto(null)}
+                    disabled={isUploadingPhoto}
+                  >
+                    <Text style={styles.photoRemoveIcon}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Input Control Row */}
+              <View style={styles.commentInputRow}>
+                {/* 1. Pick Photo Button 📷 */}
+                <TouchableOpacity
+                  style={styles.inputActionIconBtn}
+                  onPress={handlePickPhoto}
+                  disabled={isUploadingPhoto}
+                >
+                  <Text style={styles.inputActionIcon}>📷</Text>
+                </TouchableOpacity>
+
+                {/* 2. Emoji / Keyboard Toggle Button 😊 / ⌨️ */}
+                <TouchableOpacity
+                  style={[
+                    styles.inputActionIconBtn,
+                    showEmojiPicker && styles.inputActionIconBtnActive
+                  ]}
+                  onPress={() => {
+                    if (showEmojiPicker) {
+                      setShowEmojiPicker(false);
+                    } else {
+                      Keyboard.dismiss();
+                      setShowEmojiPicker(true);
+                    }
+                  }}
+                >
+                  <Text style={styles.inputActionIcon}>{showEmojiPicker ? '⌨️' : '😊'}</Text>
+                </TouchableOpacity>
+
+                {/* 3. Text Input Box (Realtime Visible, Clear White Text on Dark Card) */}
+                <TextInput
+                  style={styles.activeTextInput}
+                  placeholder={selectedPhoto ? "Photo caption likhein (optional)..." : "कमेंट लिखिए..."}
+                  placeholderTextColor="#94a3b8"
+                  value={inlineComment}
+                  onChangeText={setInlineComment}
+                  onFocus={() => setShowEmojiPicker(false)}
+                  autoFocus={!showEmojiPicker}
+                  multiline={false}
+                  returnKeyType="send"
+                  onSubmitEditing={handleSendCommentOrPhoto}
+                />
+
+                {/* 4. Send Button with Tick (✔) when photo is attached */}
+                <TouchableOpacity
+                  style={[
+                    styles.activeSendBtn,
+                    selectedPhoto && styles.activeSendBtnPhotoReady,
+                    (!inlineComment.trim() && !selectedPhoto) && styles.activeSendBtnDisabled
+                  ]}
+                  disabled={(!inlineComment.trim() && !selectedPhoto) || isUploadingPhoto}
+                  onPress={handleSendCommentOrPhoto}
+                >
+                  {isUploadingPhoto ? (
+                    <ActivityIndicator size="small" color="#ffffff" />
+                  ) : (
+                    <Text style={styles.activeSendIcon}>{selectedPhoto ? '✔' : '➤'}</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+
+              {/* WHATSAPP-STYLE INTEGRATED EMOJI BOARD */}
+              {showEmojiPicker && (
+                <View style={styles.inlineEmojiBoard}>
+                  {/* Category Tabs */}
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={styles.emojiCatScrollView}
+                    contentContainerStyle={styles.emojiCatContent}
+                  >
+                    {EMOJI_CATEGORIES.map(cat => {
+                      const isSelected = cat.id === selectedEmojiCat;
+                      return (
+                        <TouchableOpacity
+                          key={cat.id}
+                          style={[styles.emojiCatTab, isSelected && styles.emojiCatTabActive]}
+                          onPress={() => setSelectedEmojiCat(cat.id)}
+                        >
+                          <Text style={styles.emojiCatIcon}>{cat.icon}</Text>
+                          <Text style={[styles.emojiCatText, isSelected && styles.emojiCatTextActive]}>
+                            {cat.name}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+
+                  {/* Scrollable Emojis Grid */}
+                  <ScrollView
+                    style={styles.emojiGridScroll}
+                    contentContainerStyle={styles.emojiGridContent}
+                    showsVerticalScrollIndicator={false}
+                  >
+                    {(EMOJI_CATEGORIES.find(c => c.id === selectedEmojiCat)?.emojis || []).map((emoji, idx) => (
+                      <TouchableOpacity
+                        key={`${selectedEmojiCat}_${idx}_${emoji}`}
+                        style={styles.emojiGridCell}
+                        activeOpacity={0.6}
+                        onPress={() => handleEmojiSelect(emoji)}
+                      >
+                        <Text style={styles.emojiGridText}>{emoji}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+
+                  {/* Bottom Favorites & Backspace Bar */}
+                  <View style={styles.emojiBoardFooter}>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }}>
+                      {QUICK_EMOJIS.map((emoji, idx) => (
+                        <TouchableOpacity
+                          key={`quick_fav_${idx}`}
+                          style={styles.quickFavBtn}
+                          onPress={() => handleEmojiSelect(emoji)}
+                        >
+                          <Text style={{ fontSize: 20 }}>{emoji}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+
+                    <TouchableOpacity
+                      style={styles.emojiBackspaceBtn}
+                      onPress={handleBackspace}
+                    >
+                      <Text style={styles.emojiBackspaceIcon}>⌫</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+            </View>
+          </KeyboardAvoidingView>
+        </Modal>
 
         {/* BOTTOM ACTION BAR */}
         <View style={styles.bottomBar}>
           {/* 1. Comment Input Pill */}
           <TouchableOpacity
             style={styles.commentPillBtn}
-            onPress={() => setInlineChatOpen(true)}
+            onPress={() => {
+              setShowEmojiPicker(false);
+              setInlineChatOpen(true);
+            }}
           >
             <Text style={styles.commentPillText}>कमेंट लिखिए</Text>
           </TouchableOpacity>
 
-          {/* 2. Emoji Button 😊 */}
+          {/* 2. Photo Button 📷 */}
           <TouchableOpacity
             style={styles.bottomCircleBtn}
-            onPress={() => setEmojiModalVisible(true)}
+            onPress={handlePickPhoto}
+          >
+            <Text style={styles.bottomBtnIcon}>📷</Text>
+          </TouchableOpacity>
+
+          {/* 3. Emoji Button 😊 */}
+          <TouchableOpacity
+            style={styles.bottomCircleBtn}
+            onPress={() => {
+              setShowEmojiPicker(true);
+              setInlineChatOpen(true);
+            }}
           >
             <Text style={styles.bottomBtnIcon}>😊</Text>
           </TouchableOpacity>
 
-          {/* 3. Mic Toggle Button 🎙️ */}
+          {/* 4. Mic Toggle Button 🎙️ */}
           <TouchableOpacity
             style={[
               styles.bottomCircleBtn,
@@ -629,15 +945,15 @@ export const RoomVoiceScreen = ({ roomId, roomPassword, onLeave }) => {
             </Text>
           </TouchableOpacity>
 
-          {/* 4. Chat 💬 */}
+          {/* 5. Game Arena 🎮 */}
           <TouchableOpacity
             style={styles.bottomCircleBtn}
-            onPress={() => setInlineChatOpen(prev => !prev)}
+            onPress={() => setGameCenterVisible(true)}
           >
-            <Text style={styles.bottomBtnIcon}>💬</Text>
+            <Text style={styles.bottomBtnIcon}>🎮</Text>
           </TouchableOpacity>
 
-          {/* 5. GLOWING 3D PINK GIFT BOX 🎁 */}
+          {/* 6. GLOWING 3D PINK GIFT BOX 🎁 */}
           <TouchableOpacity
             style={styles.glowingGiftBtn}
             activeOpacity={0.85}
@@ -647,6 +963,14 @@ export const RoomVoiceScreen = ({ roomId, roomPassword, onLeave }) => {
             <View style={styles.giftGoldBow} />
           </TouchableOpacity>
         </View>
+
+        {/* 3-IN-1 GAME CENTER MODAL (GREEDY BABY, TEEN PATTI, SUPER SLOTS) */}
+        <GameCenterModal
+          visible={gameCenterVisible}
+          onClose={() => setGameCenterVisible(false)}
+          userCoins={user?.coins || 0}
+          onUpdateCoins={updateCoins}
+        />
 
         {/* FULL PHONE EMOJI PICKER MODAL */}
         <EmojiPickerModal
@@ -1183,56 +1507,272 @@ const styles = StyleSheet.create({
     overflow: 'hidden'
   },
 
-  // INLINE INPUT BAR
-  inlineInputBar: {
+  // KEYBOARD-SAFE COMMENT MODAL STYLES
+  commentModalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'transparent'
+  },
+  commentModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)'
+  },
+  commentModalCard: {
+    backgroundColor: '#130d2a',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderTopWidth: 1.5,
+    borderTopColor: 'rgba(168, 85, 247, 0.4)',
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: Platform.OS === 'ios' ? 24 : 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    elevation: 20
+  },
+  quickChipsScrollView: {
+    marginBottom: 8,
+    maxHeight: 32
+  },
+  quickChipsContent: {
+    alignItems: 'center',
+    paddingHorizontal: 2,
+    gap: 6
+  },
+  quickChip: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(168, 85, 247, 0.25)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 14
+  },
+  quickChipText: {
+    color: '#e2e8f0',
+    fontSize: 11,
+    fontWeight: '600'
+  },
+  photoAttachedCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1b123a',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(168, 85, 247, 0.3)'
+    backgroundColor: 'rgba(168, 85, 247, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(168, 85, 247, 0.35)',
+    borderRadius: 12,
+    padding: 6,
+    marginBottom: 8
   },
-  inlineTextInput: {
+  photoAttachedThumb: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    backgroundColor: '#1e293b'
+  },
+  photoAttachedInfo: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    color: '#ffffff',
-    fontSize: 13
-  },
-  inlineSendBtn: {
-    backgroundColor: '#9333ea',
-    borderRadius: 18,
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
     marginLeft: 8
   },
-  inlineSendBtnDisabled: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)'
-  },
-  inlineSendIcon: {
-    color: '#ffffff',
-    fontSize: 14
-  },
-  inlineCancelBtn: {
-    padding: 6,
-    marginLeft: 6
-  },
-  inlineCancelText: {
-    color: 'rgba(255, 255, 255, 0.5)',
-    fontSize: 14,
+  photoAttachedTitle: {
+    color: '#38bdf8',
+    fontSize: 12,
     fontWeight: 'bold'
   },
-  inlineEmojiBtn: {
-    paddingHorizontal: 6,
-    paddingVertical: 4,
-    justifyContent: 'center',
+  photoAttachedSub: {
+    color: '#94a3b8',
+    fontSize: 10
+  },
+  photoUploadTickBtn: {
+    backgroundColor: '#16a34a',
+    borderRadius: 16,
+    width: 32,
+    height: 32,
     alignItems: 'center',
-    marginLeft: 4
+    justifyContent: 'center',
+    marginRight: 6,
+    borderWidth: 1,
+    borderColor: '#4ade80',
+    shadowColor: '#16a34a',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.6,
+    shadowRadius: 3,
+    elevation: 3
+  },
+  photoUploadTickIcon: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '900'
+  },
+  photoRemoveBtn: {
+    padding: 6,
+    backgroundColor: 'rgba(239, 68, 68, 0.25)',
+    borderRadius: 14,
+    marginRight: 4
+  },
+  photoRemoveIcon: {
+    color: '#ef4444',
+    fontSize: 12,
+    fontWeight: 'bold'
+  },
+  commentInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6
+  },
+  inputActionIconBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)'
+  },
+  inputActionIconBtnActive: {
+    backgroundColor: 'rgba(168, 85, 247, 0.35)',
+    borderColor: '#c084fc'
+  },
+  inputActionIcon: {
+    fontSize: 18
+  },
+  activeTextInput: {
+    flex: 1,
+    minHeight: 40,
+    maxHeight: 44,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '500',
+    borderWidth: 1,
+    borderColor: 'rgba(168, 85, 247, 0.4)'
+  },
+  activeSendBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#9333ea',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#c084fc',
+    shadowColor: '#9333ea',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.6,
+    shadowRadius: 4,
+    elevation: 4
+  },
+  activeSendBtnPhotoReady: {
+    backgroundColor: '#16a34a',
+    borderColor: '#4ade80',
+    shadowColor: '#16a34a'
+  },
+  activeSendBtnDisabled: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: 'transparent',
+    opacity: 0.5
+  },
+  activeSendIcon: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '900'
+  },
+
+  // INLINE EMOJI BOARD (WHATSAPP STYLE)
+  inlineEmojiBoard: {
+    marginTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    paddingTop: 8
+  },
+  emojiCatScrollView: {
+    maxHeight: 34,
+    marginBottom: 6
+  },
+  emojiCatContent: {
+    alignItems: 'center',
+    gap: 6
+  },
+  emojiCatTab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    gap: 4
+  },
+  emojiCatTabActive: {
+    backgroundColor: 'rgba(168, 85, 247, 0.35)',
+    borderColor: '#c084fc'
+  },
+  emojiCatIcon: {
+    fontSize: 13
+  },
+  emojiCatText: {
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: 11,
+    fontWeight: '600'
+  },
+  emojiCatTextActive: {
+    color: '#ffffff',
+    fontWeight: '800'
+  },
+  emojiGridWrapper: {
+    position: 'relative'
+  },
+  emojiGridScroll: {
+    maxHeight: 160
+  },
+  emojiGridContent: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-start',
+    paddingVertical: 4
+  },
+  emojiGridCell: {
+    width: '12.5%',
+    aspectRatio: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8
+  },
+  emojiGridText: {
+    fontSize: 22
+  },
+  emojiBoardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 14,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginTop: 6
+  },
+  quickFavBtn: {
+    paddingHorizontal: 6,
+    paddingVertical: 2
+  },
+  emojiBackspaceBtn: {
+    backgroundColor: 'rgba(239, 68, 68, 0.25)',
+    borderRadius: 10,
+    width: 36,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.4)'
+  },
+  emojiBackspaceIcon: {
+    color: '#ef4444',
+    fontSize: 16,
+    fontWeight: 'bold'
   },
 
   // 6. BOTTOM ACTION BAR MATCHING SCREENSHOT

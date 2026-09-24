@@ -1,11 +1,12 @@
-import { API_BASE_URL } from './config';
+import { API_BASE_URL, parseApiResponse } from './config';
 
 export const agoraApi = {
   async getConfig() {
     try {
       const res = await fetch(`${API_BASE_URL}/api/agora/config`);
-      if (!res.ok) throw new Error('Failed to load Agora configuration');
-      return await res.json();
+      const data = await parseApiResponse(res);
+      if (!res.ok) throw new Error((data && (data.message || data.error)) || 'Failed to load Agora configuration');
+      return data;
     } catch (err) {
       console.warn('agoraApi.getConfig error:', err);
       return { appId: '', isConfigured: false };
@@ -19,11 +20,11 @@ export const agoraApi = {
           'Authorization': `Bearer ${token}`
         }
       });
+      const data = await parseApiResponse(res);
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to retrieve Agora RTC token');
+        throw new Error((data && (data.message || data.error)) || 'Failed to retrieve Agora RTC token');
       }
-      return await res.json();
+      return data;
     } catch (err) {
       console.warn('agoraApi.getToken error:', err);
       throw err;

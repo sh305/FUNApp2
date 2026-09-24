@@ -21,11 +21,12 @@ namespace YoYoVoiceChatApi.Services
         ///
         /// Formula:
         /// If Level < 12: 8 seats
-        /// If Level >= 12: 8 + (floor(Level / 12) * 2)
+        /// If Level >= 12: 8 + (floor(Level / 12) * 4)
         /// Level 1-11: 8 seats
-        /// Level 12-23: 8 + (1 * 2) = 10 seats
-        /// Level 24-35: 8 + (2 * 2) = 12 seats
-        /// Level 36-47: 8 + (3 * 2) = 14 seats
+        /// Level 12-23: 8 + (1 * 4) = 12 seats (3 rows of 4)
+        /// Level 24-35: 8 + (2 * 4) = 16 seats (4 rows of 4)
+        /// Level 36-47: 8 + (3 * 4) = 20 seats (5 rows of 4)
+        /// Level 48-59: 8 + (4 * 4) = 24 seats (6 rows of 4)
         /// </summary>
         public int CalculateSeatCount(int roomLevel)
         {
@@ -35,7 +36,7 @@ namespace YoYoVoiceChatApi.Services
             }
 
             int multiplier = roomLevel / 12;
-            return 8 + (multiplier * 2);
+            return 8 + (multiplier * 4);
         }
 
         public async Task<bool> EnsureInitialSeatsAsync(int roomId, int initialLevel, ApplicationDbContext db)

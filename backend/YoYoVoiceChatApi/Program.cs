@@ -10,12 +10,13 @@ using YoYoVoiceChatApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Database Connection (SQL Server)
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
-    ?? "Server=.\\MSSQLSERVER01;Database=YoYoVoiceChatDb;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true;";
+// 1. Database Connection (Free online PostgreSQL / Supabase)
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? Environment.GetEnvironmentVariable("DATABASE_URL")
+    ?? "Host=localhost;Port=5432;Database=yoyovoicechat;Username=postgres;Password=postgres;";
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(connectionString));
+    options.UseNpgsql(connectionString));
 
 // 2. Caching
 builder.Services.AddMemoryCache();
@@ -125,6 +126,12 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    DbInitializer.Initialize(db);
+}
+
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment() || true)
 {
@@ -137,6 +144,8 @@ if (app.Environment.IsDevelopment() || true)
 }
 
 app.UseCors("CorsPolicy");
+
+app.UseStaticFiles();
 
 app.UseAuthentication();
 app.UseMiddleware<BanEnforcementMiddleware>();

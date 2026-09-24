@@ -187,29 +187,29 @@ namespace YoYoVoiceChatApi.Controllers
             int claimedLevel = room.CurrentBoxLevel;
             long rewardCoins = claimedLevel switch
             {
-                1 => 1500,
-                2 => 8000,
-                3 => 25000,
-                4 => 60000,
-                _ => 150000
+                1 => 10000,
+                2 => 50000,
+                3 => 150000,
+                4 => 350000,
+                _ => 1000000
             };
 
             string frameName = claimedLevel switch
             {
-                1 => "Bronze Sovereign Box Frame",
-                2 => "Silver Knight Box Frame",
-                3 => "Gold Royalty Box Frame",
-                4 => "Diamond Dragon Box Frame",
-                _ => "Royal Emperor Palace Frame"
+                1 => "Amethyst Crystal Frame",
+                2 => "Cyan Laser Cyber Frame",
+                3 => "Galaxy Sovereign Frame",
+                4 => "Golden Fire Dragon Frame",
+                _ => "Solar God Radiant Crown Frame"
             };
 
             string animationName = claimedLevel switch
             {
-                1 => "Sparkle Star Entrance",
-                2 => "Neon Cyber Wings",
-                3 => "Luxury Sports Car Ride",
-                4 => "Super Galaxy Rocket",
-                _ => "Imperial Dragon Fireworks"
+                1 => "VIP Hi~ Greeting Bubble",
+                2 => "🏎️ Cyber Supercar Racing Crest",
+                3 => "👑 Royal Phoenix VIP Emblem",
+                4 => "🐉 Golden Dragon King Medallion",
+                _ => "🏰 Celestial Sun Palace Room Theme"
             };
 
             // Credit Coins to claimer
@@ -385,6 +385,71 @@ namespace YoYoVoiceChatApi.Controllers
             await _db.SaveChangesAsync();
 
             return Ok(new { Message = "User ko successfully un-kick kar diya gaya hai." });
+        }
+
+        [Authorize]
+        [HttpPost("{id}/upload-photo")]
+        public async Task<IActionResult> UploadRoomPhoto(int id, [FromBody] UploadRoomPhotoRequest req)
+        {
+            var userId = GetCurrentUserId();
+            var user = await _db.Users.FindAsync(userId);
+            if (user == null) return Unauthorized(new { message = "User not found" });
+            if (string.IsNullOrWhiteSpace(req.Base64Data)) return BadRequest(new { message = "Photo data is required" });
+
+            try
+            {
+                var uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "room_photos");
+                if (!Directory.Exists(uploadsDir))
+                {
+                    Directory.CreateDirectory(uploadsDir);
+                }
+
+                var rawBase64 = req.Base64Data;
+                var commaIdx = rawBase64.IndexOf(',');
+                if (commaIdx >= 0)
+                {
+                    rawBase64 = rawBase64.Substring(commaIdx + 1);
+                }
+
+                var bytes = Convert.FromBase64String(rawBase64);
+                var fileName = $"room_{id}_user_{userId}_{DateTime.UtcNow.Ticks}.jpg";
+                var filePath = Path.Combine(uploadsDir, fileName);
+                await System.IO.File.WriteAllBytesAsync(filePath, bytes);
+
+                var relativeUrl = $"/uploads/room_photos/{fileName}";
+
+                var msg = new RoomMessage
+                {
+                    RoomId = id,
+                    SenderUserId = userId,
+                    Content = string.IsNullOrWhiteSpace(req.Caption) ? "📷 Photo" : req.Caption,
+                    MessageType = "Image",
+                    SentAt = DateTime.UtcNow
+                };
+                _db.RoomMessages.Add(msg);
+                await _db.SaveChangesAsync();
+
+                var groupName = $"room_{id}";
+                await _hubContext.Clients.Group(groupName).SendAsync("ReceiveChatMessage", new
+                {
+                    Id = msg.Id,
+                    RoomId = id,
+                    SenderId = userId,
+                    SenderName = user.DisplayName,
+                    SenderAvatar = user.AvatarUrl,
+                    UserLevel = user.UserLevel,
+                    Content = msg.Content,
+                    ImageUrl = relativeUrl,
+                    MessageType = "Image",
+                    SentAt = msg.SentAt
+                });
+
+                return Ok(new { success = true, imageUrl = relativeUrl, messageId = msg.Id });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
         }
     }
 }

@@ -318,6 +318,40 @@ namespace YoYoVoiceChatApi.Hubs
                 SenderAvatar = user.AvatarUrl,
                 UserLevel = user.UserLevel,
                 Content = content,
+                MessageType = "Text",
+                SentAt = msg.SentAt
+            });
+        }
+
+        public async Task SendImageMessage(int roomId, string imageUrl, string? caption)
+        {
+            var userId = GetCurrentUserId();
+            var user = await _db.Users.FindAsync(userId);
+            if (user == null || string.IsNullOrWhiteSpace(imageUrl)) return;
+
+            var msg = new RoomMessage
+            {
+                RoomId = roomId,
+                SenderUserId = userId,
+                Content = string.IsNullOrWhiteSpace(caption) ? "📷 Photo" : caption,
+                MessageType = "Image",
+                SentAt = DateTime.UtcNow
+            };
+            _db.RoomMessages.Add(msg);
+            await _db.SaveChangesAsync();
+
+            var groupName = $"room_{roomId}";
+            await Clients.Group(groupName).SendAsync("ReceiveChatMessage", new
+            {
+                Id = msg.Id,
+                RoomId = roomId,
+                SenderId = userId,
+                SenderName = user.DisplayName,
+                SenderAvatar = user.AvatarUrl,
+                UserLevel = user.UserLevel,
+                Content = msg.Content,
+                ImageUrl = imageUrl,
+                MessageType = "Image",
                 SentAt = msg.SentAt
             });
         }

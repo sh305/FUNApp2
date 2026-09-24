@@ -5,18 +5,32 @@ import {
   TextInput,
   TouchableOpacity,
   FlatList,
-  StyleSheet
+  Image,
+  Modal,
+  StyleSheet,
+  ActivityIndicator
 } from 'react-native';
 import { COLORS } from '../constants/theme';
+import { API_BASE_URL } from '../api/config';
 
 export const ChatBox = ({ messages = [], onSendMessage, hideInputBar = false }) => {
   const [inputText, setInputText] = useState('');
+  const [previewImage, setPreviewImage] = useState(null);
   const flatListRef = useRef(null);
 
   const handleSend = () => {
     if (!inputText.trim()) return;
     onSendMessage(inputText.trim());
     setInputText('');
+  };
+
+  const getFullImageUrl = (url) => {
+    if (!url) return null;
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+      return url;
+    }
+    const cleanUrl = url.startsWith('/') ? url : `/${url}`;
+    return `${API_BASE_URL}${cleanUrl}`;
   };
 
   const renderItem = ({ item }) => {
@@ -36,6 +50,52 @@ export const ChatBox = ({ messages = [], onSendMessage, hideInputBar = false }) 
       return (
         <View style={styles.systemNoticeBubble}>
           <Text style={styles.systemNoticeText}>📢 {item.content}</Text>
+        </View>
+      );
+    }
+
+    // Photo message check
+    const isImage = item.messageType === 'Image' || !!item.imageUrl || (typeof item.content === 'string' && item.content.startsWith('[IMG]:'));
+    let imgUri = null;
+    let captionText = null;
+
+    if (isImage) {
+      if (item.imageUrl) {
+        imgUri = getFullImageUrl(item.imageUrl);
+        captionText = item.content && item.content !== '📷 Photo' ? item.content : null;
+      } else if (typeof item.content === 'string' && item.content.startsWith('[IMG]:')) {
+        imgUri = getFullImageUrl(item.content.replace('[IMG]:', '').trim());
+      }
+    }
+
+    if (isImage && imgUri) {
+      return (
+        <View style={styles.chatImageRow}>
+          <View style={styles.headerInfoRow}>
+            <View style={styles.levelPill}>
+              <Text style={styles.levelPillText}>Lv.{item.userLevel || 1}</Text>
+            </View>
+            <Text style={styles.senderName}>{item.senderName}:</Text>
+          </View>
+          
+          <TouchableOpacity
+            activeOpacity={0.88}
+            onPress={() => setPreviewImage({ uri: imgUri, senderName: item.senderName, caption: captionText })}
+            style={styles.imageThumbnailContainer}
+          >
+            <Image
+              source={{ uri: imgUri }}
+              style={styles.imageThumbnail}
+              resizeMode="cover"
+            />
+            <View style={styles.imageExpandBadge}>
+              <Text style={styles.imageExpandIcon}>🔍</Text>
+            </View>
+          </TouchableOpacity>
+
+          {!!captionText && (
+            <Text style={styles.imageCaptionText}>{captionText}</Text>
+          )}
         </View>
       );
     }
@@ -92,6 +152,45 @@ export const ChatBox = ({ messages = [], onSendMessage, hideInputBar = false }) 
           </TouchableOpacity>
         </View>
       )}
+
+      {/* Fullscreen Image Preview Modal */}
+      <Modal
+        visible={!!previewImage}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setPreviewImage(null)}
+      >
+        <View style={styles.fullscreenModalBackdrop}>
+          <TouchableOpacity
+            style={styles.fullscreenCloseBtn}
+            onPress={() => setPreviewImage(null)}
+          >
+            <Text style={styles.fullscreenCloseIcon}>✕</Text>
+          </TouchableOpacity>
+
+          {previewImage && (
+            <View style={styles.fullscreenImageCard}>
+              <View style={styles.fullscreenHeader}>
+                <Text style={styles.fullscreenSenderText}>
+                  📷 Shared by <Text style={{ color: '#38bdf8', fontWeight: 'bold' }}>{previewImage.senderName}</Text>
+                </Text>
+              </View>
+
+              <Image
+                source={{ uri: previewImage.uri }}
+                style={styles.fullscreenImage}
+                resizeMode="contain"
+              />
+
+              {!!previewImage.caption && (
+                <View style={styles.fullscreenCaptionBox}>
+                  <Text style={styles.fullscreenCaptionText}>{previewImage.caption}</Text>
+                </View>
+              )}
+            </View>
+          )}
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -136,6 +235,21 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 8
   },
+  chatImageRow: {
+    marginBottom: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    padding: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    alignSelf: 'flex-start',
+    maxWidth: '85%'
+  },
+  headerInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4
+  },
   levelPill: {
     backgroundColor: COLORS.primary,
     paddingHorizontal: 5,
@@ -160,6 +274,38 @@ const styles = StyleSheet.create({
     fontSize: 12,
     flex: 1,
     flexShrink: 1
+  },
+  imageThumbnailContainer: {
+    width: 140,
+    height: 140,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#1e293b',
+    borderWidth: 1,
+    borderColor: 'rgba(168, 85, 247, 0.4)',
+    position: 'relative'
+  },
+  imageThumbnail: {
+    width: '100%',
+    height: '100%'
+  },
+  imageExpandBadge: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: 10,
+    paddingHorizontal: 4,
+    paddingVertical: 2
+  },
+  imageExpandIcon: {
+    fontSize: 10,
+    color: '#fff'
+  },
+  imageCaptionText: {
+    color: '#e2e8f0',
+    fontSize: 11,
+    marginTop: 4
   },
   giftAlertBubble: {
     backgroundColor: 'rgba(255, 215, 0, 0.15)',
@@ -230,5 +376,59 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 13,
     fontWeight: 'bold'
+  },
+  fullscreenModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.94)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16
+  },
+  fullscreenCloseBtn: {
+    position: 'absolute',
+    top: 44,
+    right: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10
+  },
+  fullscreenCloseIcon: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold'
+  },
+  fullscreenImageCard: {
+    width: '100%',
+    maxHeight: '80%',
+    alignItems: 'center'
+  },
+  fullscreenHeader: {
+    marginBottom: 10
+  },
+  fullscreenSenderText: {
+    color: '#fff',
+    fontSize: 14
+  },
+  fullscreenImage: {
+    width: '100%',
+    height: 380,
+    borderRadius: 12
+  },
+  fullscreenCaptionBox: {
+    marginTop: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+    maxWidth: '90%'
+  },
+  fullscreenCaptionText: {
+    color: '#f8fafc',
+    fontSize: 13,
+    textAlign: 'center'
   }
 });
