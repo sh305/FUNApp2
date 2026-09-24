@@ -2,6 +2,7 @@ import React, { createContext, useState, useEffect, useContext } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authApi } from '../api/authApi';
 import { userApi } from '../api/userApi';
+import { API_BASE_URL } from '../api/config';
 
 const AuthContext = createContext();
 
@@ -12,6 +13,8 @@ export const AuthProvider = ({ children }) => {
   const [banError, setBanError] = useState(null);
 
   useEffect(() => {
+    // Wake up server in background as early as possible
+    fetch(`${API_BASE_URL}/health`).catch(() => {});
     loadSavedSession();
   }, []);
 

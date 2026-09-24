@@ -38,19 +38,35 @@ export const HomeScreen = ({ onOpenRoom, onOpenProfile }) => {
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState('');
 
+  const [loadError, setLoadError] = useState(false);
   const categories = ['All', 'Music', 'Chat', 'Gaming', 'Dating'];
 
   useEffect(() => {
     loadRooms();
   }, [category]);
 
-  const loadRooms = async () => {
+  const loadRooms = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
+      setLoadError(false);
       const data = await roomApi.getRooms(category);
-      setRooms(data);
+      if (Array.isArray(data)) {
+        setRooms(data);
+      }
     } catch (err) {
       console.warn('Failed to load rooms:', err);
+      setLoadError(true);
+      // Auto retry after 3 seconds if cold starting
+      setTimeout(() => {
+        roomApi.getRooms(category)
+          .then(d => {
+            if (Array.isArray(d)) {
+              setRooms(d);
+              setLoadError(false);
+            }
+          })
+          .catch(() => {});
+      }, 3000);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -94,14 +110,17 @@ export const HomeScreen = ({ onOpenRoom, onOpenProfile }) => {
         password: isLockedNew ? newPassword.trim() : null
       });
 
+      const newRoomId = res?.roomId || res?.RoomId || res?.id;
       setCreateModalVisible(false);
       setNewTitle('');
       setNewPassword('');
       setIsLockedNew(false);
-      loadRooms();
-      onOpenRoom(res.roomId);
+      loadRooms(true);
+      if (newRoomId) {
+        onOpenRoom(newRoomId, isLockedNew ? newPassword.trim() : null);
+      }
     } catch (err) {
-      setCreateError(err.message || 'Room creation failed');
+      setCreateError(err.message || 'Room create nahi ho paya. Kripya dubara koshish karein.');
     } finally {
       setCreateLoading(false);
     }
@@ -191,11 +210,25 @@ export const HomeScreen = ({ onOpenRoom, onOpenProfile }) => {
             />
           }
           ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyIcon}>📻</Text>
-              <Text style={styles.emptyTitle}>Abhi koi room nahi hai</Text>
-              <Text style={styles.emptyDesc}>Naya room banayein aur dosto ko invite karein!</Text>
-            </View>
+            loadError ? (
+              <View style={styles.emptyContainer}>
+                <ActivityIndicator size="small" color={COLORS.gold} style={{ marginBottom: 12 }} />
+                <Text style={styles.emptyTitle}>Server se connect ho raha hai...</Text>
+                <Text style={styles.emptyDesc}>Cloud server wake-up ho raha hai, kripya 5-10 second intezar karein.</Text>
+                <TouchableOpacity
+                  style={[styles.createRoomFab, { position: 'relative', marginTop: 16, bottom: 'auto', right: 'auto' }]}
+                  onPress={() => loadRooms()}
+                >
+                  <Text style={styles.fabText}>🔄 Tap to Refresh</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyIcon}>📻</Text>
+                <Text style={styles.emptyTitle}>Abhi koi room nahi hai</Text>
+                <Text style={styles.emptyDesc}>Naya room banayein aur dosto ko invite karein!</Text>
+              </View>
+            )
           }
         />
       )}

@@ -51,6 +51,7 @@ export const RoomVoiceScreen = ({ roomId, roomPassword, onLeave }) => {
   const [seatCount, setSeatCount] = useState(8);
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [roomError, setRoomError] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
   const [activeSpeakers, setActiveSpeakers] = useState([]);
 
@@ -105,9 +106,16 @@ export const RoomVoiceScreen = ({ roomId, roomPassword, onLeave }) => {
   }, [user?.id]);
 
   const initRoom = async () => {
+    if (!roomId) {
+      setRoomError('Room ID nahi mili.');
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
+      setRoomError(null);
       const data = await roomApi.getRoomById(roomId);
+      if (!data) throw new Error('Room details empty return hui.');
       setRoom(data);
       setSeats(data.seats || []);
       setSeatCount(data.seatCount || 8);
@@ -157,9 +165,8 @@ export const RoomVoiceScreen = ({ roomId, roomPassword, onLeave }) => {
         .catch(agoraErr => console.log('[RoomVoiceScreen] Agora voice init info:', agoraErr.message));
 
     } catch (err) {
-      Alert.alert('Room Error', err.message || 'Room load nahi ho paya.', [
-        { text: 'OK', onPress: onLeave }
-      ]);
+      console.warn('initRoom error:', err);
+      setRoomError(err.message || 'Room load nahi ho paya.');
       setLoading(false);
     }
   };
@@ -490,11 +497,39 @@ export const RoomVoiceScreen = ({ roomId, roomPassword, onLeave }) => {
     }
   };
 
-  if (loading || !room) {
+  if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#a855f7" />
         <Text style={styles.loadingText}>Connecting to YoYo Voice Room...</Text>
+      </View>
+    );
+  }
+
+  if (!room) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={{ fontSize: 42, marginBottom: 12 }}>🎙️</Text>
+        <Text style={[styles.loadingText, { color: '#f87171', fontWeight: 'bold', fontSize: 16 }]}>
+          Room Load Nahi Ho Paya
+        </Text>
+        <Text style={{ color: '#94a3b8', fontSize: 13, textAlign: 'center', marginHorizontal: 28, marginTop: 6, marginBottom: 22 }}>
+          {roomError || 'Server connection timeout ho gaya. Kripya dubara koshish karein.'}
+        </Text>
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <TouchableOpacity
+            style={{ backgroundColor: COLORS.gold, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12 }}
+            onPress={initRoom}
+          >
+            <Text style={{ color: '#000', fontWeight: 'bold' }}>🔄 Dobara Koshish Karein</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={{ backgroundColor: '#334155', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12 }}
+            onPress={onLeave}
+          >
+            <Text style={{ color: '#fff', fontWeight: 'bold' }}>✕ Wapas Jayein</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }

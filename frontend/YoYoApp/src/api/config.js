@@ -26,6 +26,22 @@ const USE_CLOUD_API = true;
 
 export const API_BASE_URL = USE_CLOUD_API ? CLOUD_API_URL : LOCAL_API_URL;
 
+export async function fetchWithTimeout(url, options = {}, timeoutMs = 25000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(timeoutId);
+    return res;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (err.name === 'AbortError') {
+      throw new Error('Network time out. Dubara koshish karein.');
+    }
+    throw err;
+  }
+}
+
 export async function parseApiResponse(res) {
   const text = await res.text();
   if (!text || !text.trim()) return null;
@@ -44,3 +60,4 @@ export async function parseApiResponse(res) {
 }
 
 export const HUB_URL = `${API_BASE_URL}/hubs/room`;
+

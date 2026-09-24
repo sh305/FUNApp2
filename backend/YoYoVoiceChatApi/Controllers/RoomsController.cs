@@ -265,13 +265,21 @@ namespace YoYoVoiceChatApi.Controllers
                 CreatedAt = DateTime.UtcNow
             };
 
+            for (int i = 0; i < 8; i++)
+            {
+                room.Seats.Add(new RoomSeat
+                {
+                    SeatIndex = i,
+                    OccupantUserId = null,
+                    IsMuted = false,
+                    IsLocked = false
+                });
+            }
+
             _db.Rooms.Add(room);
             await _db.SaveChangesAsync();
 
-            // Populate initial 8 seats
-            await _seatManager.EnsureInitialSeatsAsync(room.Id, room.RoomLevel, _db);
-
-            return CreatedAtAction(nameof(GetRoomById), new { id = room.Id }, new { RoomId = room.Id, RoomNumber = room.RoomNumber });
+            return Ok(new { RoomId = room.Id, RoomNumber = room.RoomNumber });
         }
 
         [Authorize]
