@@ -11,6 +11,7 @@
     },
     "android": {
       "package": "com.yoyo.voicechat",
+      "usesCleartextTraffic": true,
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS",
@@ -27,6 +28,11 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "d25ea093-6050-4dde-abd5-3766978cc3a9"
+      }
     }
   }
 }
