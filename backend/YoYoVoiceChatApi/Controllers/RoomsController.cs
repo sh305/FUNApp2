@@ -78,6 +78,8 @@ namespace YoYoVoiceChatApi.Controllers
             return Ok(rooms);
         }
 
+        // helo
+
         [HttpGet("{id}")]
         public async Task<IActionResult> GetRoomById(int id)
         {
