@@ -83,80 +83,71 @@ namespace YoYoVoiceChatApi.Controllers
         {
             var room = await _db.Rooms
                 .AsNoTracking()
-                .Include(r => r.Owner)
-                .Include(r => r.ActiveFrame)
-                .Include(r => r.Seats)
-                    .ThenInclude(s => s.OccupantUser)
-                        .ThenInclude(u => u!.ActiveFrame)
-                .FirstOrDefaultAsync(r => r.Id == id);
+                .Where(r => r.Id == id)
+                .Select(r => new RoomDetailDto
+                {
+                    Id = r.Id,
+                    RoomNumber = r.RoomNumber,
+                    Title = r.Title,
+                    Description = r.Description,
+                    CoverUrl = r.CoverUrl,
+                    OwnerId = r.OwnerId,
+                    Owner = r.Owner != null ? new UserDto
+                    {
+                        Id = r.Owner.Id,
+                        DisplayName = r.Owner.DisplayName,
+                        AvatarUrl = r.Owner.AvatarUrl,
+                        UserLevel = r.Owner.UserLevel
+                    } : null,
+                    Category = r.Category,
+                    RoomLevel = r.RoomLevel,
+                    RoomExp = r.RoomExp,
+                    SeatCount = r.SeatCount,
+                    IsLocked = r.IsLocked,
+                    BoxPoints = r.BoxPoints,
+                    CurrentBoxLevel = r.CurrentBoxLevel,
+                    ActiveFrame = r.ActiveFrame != null ? new FrameDto
+                    {
+                        Id = r.ActiveFrame.Id,
+                        Name = r.ActiveFrame.Name,
+                        BorderColor = r.ActiveFrame.BorderColor,
+                        GlowEffect = r.ActiveFrame.GlowEffect
+                    } : null,
+                    Seats = r.Seats.OrderBy(s => s.SeatIndex).Select(s => new SeatDto
+                    {
+                        SeatIndex = s.SeatIndex,
+                        OccupantUserId = s.OccupantUserId,
+                        IsMuted = s.IsMuted,
+                        IsLocked = s.IsLocked,
+                        OccupiedAt = s.OccupiedAt,
+                        Occupant = s.OccupantUser != null ? new UserDto
+                        {
+                            Id = s.OccupantUser.Id,
+                            Username = s.OccupantUser.Username,
+                            DisplayName = s.OccupantUser.DisplayName,
+                            AvatarUrl = s.OccupantUser.AvatarUrl,
+                            UserLevel = s.OccupantUser.UserLevel,
+                            ActiveFrame = s.OccupantUser.ActiveFrame != null ? new FrameDto
+                            {
+                                Id = s.OccupantUser.ActiveFrame.Id,
+                                Name = s.OccupantUser.ActiveFrame.Name,
+                                BorderColor = s.OccupantUser.ActiveFrame.BorderColor,
+                                GlowEffect = s.OccupantUser.ActiveFrame.GlowEffect
+                            } : null
+                        } : null
+                    }).ToList()
+                })
+                .FirstOrDefaultAsync();
 
             if (room == null)
             {
                 return NotFound("Room nahi mila.");
             }
 
-            var seatsDto = room.Seats
-                .OrderBy(s => s.SeatIndex)
-                .Select(s => new SeatDto
-                {
-                    SeatIndex = s.SeatIndex,
-                    OccupantUserId = s.OccupantUserId,
-                    IsMuted = s.IsMuted,
-                    IsLocked = s.IsLocked,
-                    OccupiedAt = s.OccupiedAt,
-                    Occupant = s.OccupantUser != null ? new UserDto
-                    {
-                        Id = s.OccupantUser.Id,
-                        Username = s.OccupantUser.Username,
-                        DisplayName = s.OccupantUser.DisplayName,
-                        AvatarUrl = s.OccupantUser.AvatarUrl,
-                        UserLevel = s.OccupantUser.UserLevel,
-                        ActiveFrame = s.OccupantUser.ActiveFrame != null ? new FrameDto
-                        {
-                            Id = s.OccupantUser.ActiveFrame.Id,
-                            Name = s.OccupantUser.ActiveFrame.Name,
-                            BorderColor = s.OccupantUser.ActiveFrame.BorderColor,
-                            GlowEffect = s.OccupantUser.ActiveFrame.GlowEffect
-                        } : null
-                    } : null
-                })
-                .ToList();
+            room.BoxThreshold = GetBoxThreshold(room.CurrentBoxLevel);
+            room.BoxCanClaim = room.BoxPoints >= room.BoxThreshold;
 
-            var detail = new RoomDetailDto
-            {
-                Id = room.Id,
-                RoomNumber = room.RoomNumber,
-                Title = room.Title,
-                Description = room.Description,
-                CoverUrl = room.CoverUrl,
-                OwnerId = room.OwnerId,
-                Owner = room.Owner != null ? new UserDto
-                {
-                    Id = room.Owner.Id,
-                    DisplayName = room.Owner.DisplayName,
-                    AvatarUrl = room.Owner.AvatarUrl,
-                    UserLevel = room.Owner.UserLevel
-                } : null,
-                Category = room.Category,
-                RoomLevel = room.RoomLevel,
-                RoomExp = room.RoomExp,
-                SeatCount = room.SeatCount,
-                IsLocked = room.IsLocked,
-                BoxPoints = room.BoxPoints,
-                CurrentBoxLevel = room.CurrentBoxLevel,
-                BoxThreshold = GetBoxThreshold(room.CurrentBoxLevel),
-                BoxCanClaim = room.BoxPoints >= GetBoxThreshold(room.CurrentBoxLevel),
-                ActiveFrame = room.ActiveFrame != null ? new FrameDto
-                {
-                    Id = room.ActiveFrame.Id,
-                    Name = room.ActiveFrame.Name,
-                    BorderColor = room.ActiveFrame.BorderColor,
-                    GlowEffect = room.ActiveFrame.GlowEffect
-                } : null,
-                Seats = seatsDto
-            };
-
-            return Ok(detail);
+            return Ok(room);
         }
 
         private static long GetBoxThreshold(int level) => level switch
