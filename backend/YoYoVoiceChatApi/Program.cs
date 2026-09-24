@@ -16,7 +16,16 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
     ?? "Host=localhost;Port=5432;Database=yoyovoicechat;Username=postgres;Password=postgres;";
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(connectionString));
+{
+    options.UseNpgsql(connectionString, npgsqlOptions =>
+    {
+        npgsqlOptions.EnableRetryOnFailure(
+            maxRetryCount: 5,
+            maxRetryDelay: TimeSpan.FromSeconds(5),
+            errorCodesToAdd: null);
+        npgsqlOptions.CommandTimeout(60);
+    });
+});
 
 // 2. Caching
 builder.Services.AddMemoryCache();
@@ -126,11 +135,22 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
+// Background DB Initialization to never block or crash HTTP server startup on Render
+_ = Task.Run(async () =>
 {
-    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    DbInitializer.Initialize(db);
-}
+    await Task.Delay(2000); // Give web host a moment to bind ports
+    try
+    {
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        DbInitializer.Initialize(db);
+        Console.WriteLine("[Program] Database initialized successfully in background.");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Program] Background DB Initialization Warning: {ex.Message}");
+    }
+});
 
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment() || true)
@@ -142,6 +162,10 @@ if (app.Environment.IsDevelopment() || true)
         c.RoutePrefix = "swagger";
     });
 }
+
+// Health check endpoint for Render
+app.MapGet("/", () => Results.Ok(new { status = "YoYo Voice Chat API is running!", timestamp = DateTime.UtcNow }));
+app.MapGet("/health", () => Results.Ok(new { status = "Healthy", timestamp = DateTime.UtcNow }));
 
 app.UseCors("CorsPolicy");
 
