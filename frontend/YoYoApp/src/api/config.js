@@ -27,17 +27,22 @@ const USE_CLOUD_API = true;
 export const API_BASE_URL = USE_CLOUD_API ? CLOUD_API_URL : LOCAL_API_URL;
 
 export async function fetchWithTimeout(url, options = {}, timeoutMs = 25000) {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  let timeoutId;
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error('Server connection timeout ho gaya. Dubara koshish karein.'));
+    }, timeoutMs);
+  });
+
   try {
-    const res = await fetch(url, { ...options, signal: controller.signal });
+    const res = await Promise.race([
+      fetch(url, options),
+      timeoutPromise
+    ]);
     clearTimeout(timeoutId);
     return res;
   } catch (err) {
     clearTimeout(timeoutId);
-    if (err.name === 'AbortError') {
-      throw new Error('Network time out. Dubara koshish karein.');
-    }
     throw err;
   }
 }
