@@ -114,29 +114,6 @@ export const RoomVoiceScreen = ({ roomId, roomPassword, onLeave }) => {
       setBoxPoints(data.boxPoints || 0);
       setCurrentBoxLevel(data.currentBoxLevel || 1);
 
-      // Set up listeners first so no events are missed
-      setupSignalRListeners();
-
-      // Connect SignalR and join
-      await roomHubService.connect(token);
-      await roomHubService.joinRoom(roomId, roomPassword);
-
-      // Initialize & join Agora Voice Channel (as Audience listener initially)
-      try {
-        const agoraData = await agoraApi.getToken(token, roomId, 2);
-        if (agoraData?.appId) {
-          await agoraVoiceService.joinChannel({
-            appId: agoraData.appId,
-            channelName: agoraData.channelName || `room_${roomId}`,
-            token: agoraData.token,
-            uid: agoraData.uid || user?.id,
-            isBroadcaster: false
-          });
-        }
-      } catch (agoraErr) {
-        console.log('[RoomVoiceScreen] Agora voice init info:', agoraErr.message);
-      }
-
       // Welcome notice
       setMessages([
         {
@@ -146,17 +123,43 @@ export const RoomVoiceScreen = ({ roomId, roomPassword, onLeave }) => {
         }
       ]);
 
+      // Set loading false instantly so user enters room immediately!
+      setLoading(false);
+
       // Trigger self entry effect
       setActiveEntryEvent({
         displayName: user?.displayName || 'Host',
         userLevel: user?.userLevel || 25,
         avatarUrl: user?.avatarUrl
       });
+
+      // Set up listeners first so no events are missed
+      setupSignalRListeners();
+
+      // Connect SignalR in background without blocking UI
+      roomHubService.connect(token)
+        .then(() => roomHubService.joinRoom(roomId, roomPassword))
+        .catch(err => console.log('[RoomVoiceScreen] SignalR join info:', err.message));
+
+      // Initialize & join Agora Voice Channel in background (as Audience listener initially)
+      agoraApi.getToken(token, roomId, 2)
+        .then(agoraData => {
+          if (agoraData?.appId) {
+            return agoraVoiceService.joinChannel({
+              appId: agoraData.appId,
+              channelName: agoraData.channelName || `room_${roomId}`,
+              token: agoraData.token,
+              uid: agoraData.uid || user?.id,
+              isBroadcaster: false
+            });
+          }
+        })
+        .catch(agoraErr => console.log('[RoomVoiceScreen] Agora voice init info:', agoraErr.message));
+
     } catch (err) {
       Alert.alert('Room Error', err.message || 'Room load nahi ho paya.', [
         { text: 'OK', onPress: onLeave }
       ]);
-    } finally {
       setLoading(false);
     }
   };

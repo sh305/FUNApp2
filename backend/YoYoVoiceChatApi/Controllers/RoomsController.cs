@@ -38,6 +38,7 @@ namespace YoYoVoiceChatApi.Controllers
         public async Task<IActionResult> GetRooms([FromQuery] string? category)
         {
             var query = _db.Rooms
+                .AsNoTracking()
                 .Include(r => r.Owner)
                 .Include(r => r.ActiveFrame)
                 .Include(r => r.Seats)
@@ -81,6 +82,7 @@ namespace YoYoVoiceChatApi.Controllers
         public async Task<IActionResult> GetRoomById(int id)
         {
             var room = await _db.Rooms
+                .AsNoTracking()
                 .Include(r => r.Owner)
                 .Include(r => r.ActiveFrame)
                 .Include(r => r.Seats)
@@ -92,9 +94,6 @@ namespace YoYoVoiceChatApi.Controllers
             {
                 return NotFound("Room nahi mila.");
             }
-
-            // Sync seat count if needed
-            await _seatManager.SyncRoomSeatsAsync(room.Id, room.RoomLevel, _db);
 
             var seatsDto = room.Seats
                 .OrderBy(s => s.SeatIndex)

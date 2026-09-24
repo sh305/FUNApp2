@@ -1,24 +1,30 @@
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
+// Live Production API hosted on Render
+export const CLOUD_API_URL = 'https://funapp-api-7uiz.onrender.com';
+
+// Local Fallback (if testing locally)
 const hostUri = Constants.expoConfig?.hostUri 
   || Constants.manifest2?.extra?.expoClient?.hostUri 
   || Constants.manifest?.debuggerHost 
   || '';
 
 const extractedIp = hostUri ? hostUri.split(':')[0] : null;
-
-// User's current local Wi-Fi IP as fallback
 const LOCAL_MACHINE_IP = '192.168.0.14';
 const targetIp = extractedIp || LOCAL_MACHINE_IP;
-
 const isWeb = Platform.OS === 'web';
 
-export const API_BASE_URL = isWeb
+const LOCAL_API_URL = isWeb
   ? (typeof window !== 'undefined' && window.location.hostname !== 'localhost'
       ? `http://${window.location.hostname}:5000`
       : 'http://localhost:5000')
   : `http://${targetIp}:5000`;
+
+// By default use the Live Cloud API (Set to false only if you want local-only testing)
+const USE_CLOUD_API = true;
+
+export const API_BASE_URL = USE_CLOUD_API ? CLOUD_API_URL : LOCAL_API_URL;
 
 export async function parseApiResponse(res) {
   const text = await res.text();
